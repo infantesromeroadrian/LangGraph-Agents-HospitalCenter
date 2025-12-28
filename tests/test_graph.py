@@ -82,17 +82,19 @@ class TestTriageNode:
     """Tests para el nodo de triaje."""
 
     @pytest.mark.asyncio
-    @patch("src.graph.nodes.TriageAgent")
     async def test_triage_node_success(self, mock_triage_class, sample_state):
         """Test ejecución exitosa del nodo de triaje."""
         # Mock del agente de triaje
         mock_agent = AsyncMock()
-        mock_agent.analyze.return_value = {
-            "urgency": "no_urgente",
-            "main_symptoms": ["dolor pecho"],
-            "recommended_specialties": ["cardiologia"],
-            "reasoning": "Evaluación cardiovascular recomendada",
-        }
+        # TriageAgent uses evaluate() not analyze()
+        mock_agent.evaluate = AsyncMock(
+            return_value={
+                "urgency": "no_urgente",
+                "main_symptoms": ["dolor pecho"],
+                "recommended_specialties": ["cardiologia"],
+                "reasoning": "Evaluación cardiovascular recomendada",
+            }
+        )
         mock_triage_class.return_value = mock_agent
 
         # Ejecutar nodo
@@ -121,12 +123,18 @@ class TestFanOutNode:
         sends = fan_out_to_specialists(sample_state)
 
         assert isinstance(sends, list)
-        assert len(sends) == 8  # 8 especialistas
+        assert (
+            len(sends) == 8
+        )  # 8 especialistas (medicina_general, cardiologia, neurologia, pediatria, dermatologia, traumatologia, psiquiatria, oncologia)
 
-        # Verificar que son Send objects
+        # Verificar que son Send objects con estructura correcta
         for send in sends:
             assert hasattr(send, "node")
-            assert hasattr(send, "state")
+            assert send.node == "specialist_evaluation"
+            # Send uses 'arg' attribute, not 'state'
+            assert hasattr(send, "arg")
+            assert "specialty" in send.arg
+            assert "state" in send.arg
 
 
 class TestSpecialistEvaluationNode:

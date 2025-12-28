@@ -66,9 +66,10 @@ class TestBaseMedicalAgent:
         agent = CardiologyAgent(llm_service=mock_llm_service)
 
         evaluation = await agent.evaluate(
-            query=sample_message.content,
+            message=sample_message,
             triage_analysis=sample_triage_analysis,
             session_id=sample_message.session_id,
+            patient_context=None,
         )
 
         assert isinstance(evaluation, SpecialistEvaluation)
@@ -82,7 +83,10 @@ class TestBaseMedicalAgent:
         agent = CardiologyAgent(llm_service=mock_llm_service)
 
         response = await agent.chat(
-            message="¿Es grave?", conversation_history=[sample_message], session_context={}
+            message="¿Es grave?",
+            session_id=sample_message.session_id,
+            history=[sample_message],
+            patient_context=None,
         )
 
         assert isinstance(response, str)
@@ -99,10 +103,10 @@ class TestTriageAgent:
         agent = TriageAgent(llm_service=mock_llm_service)
 
         assert agent.specialty == "Triaje"
-        assert len(agent.available_specialties) == 8
+        assert len(agent.available_specialties) == 9  # Updated: now includes ginecologia
 
     @pytest.mark.asyncio
-    async def test_triage_analyze(self, mock_llm_service):
+    async def test_triage_analyze(self, mock_llm_service, sample_message):
         """Test análisis de triaje."""
         agent = TriageAgent(llm_service=mock_llm_service)
 
@@ -114,10 +118,15 @@ class TestTriageAgent:
             "additional_info_needed": [],
         }
 
-        analysis = await agent.analyze(
-            patient_query="Tengo dolor en el pecho y no puedo respirar bien", session_id=uuid4()
+        # TriageAgent.evaluate() has different signature: (message, session_id, patient_context)
+        analysis = await agent.evaluate(
+            message="Tengo dolor en el pecho y no puedo respirar bien",
+            session_id=sample_message.session_id,
+            patient_context=None,
         )
 
+        # evaluate() returns dict for TriageAgent
+        assert isinstance(analysis, dict)
         assert "urgency" in analysis
         assert "main_symptoms" in analysis
         assert "recommended_specialties" in analysis
