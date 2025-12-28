@@ -114,7 +114,13 @@ class BaseMedicalAgent(ABC):
                 session_id=session_id,
             )
 
-    async def chat(self, message: str, session_id, history: list[Message]) -> str:
+    async def chat(
+        self,
+        message: str,
+        session_id,
+        history: list[Message],
+        patient_context: Optional[str] = None,
+    ) -> str:
         """
         Mantiene conversación con el paciente como especialista.
 
@@ -122,6 +128,7 @@ class BaseMedicalAgent(ABC):
             message: Mensaje del paciente
             session_id: ID de la sesión
             history: Historial de conversación
+            patient_context: ✅ NUEVO - Contexto del paciente (alergias, medicación, antecedentes)
 
         Returns:
             Respuesta del especialista
@@ -132,6 +139,11 @@ class BaseMedicalAgent(ABC):
             # Construir mensajes para chat
             session_context = {"session_id": str(session_id)}
             messages = [{"role": "system", "content": self._get_chat_prompt(session_context)}]
+
+            # ✅ NUEVO: Inyectar contexto del paciente ANTES del historial
+            if patient_context:
+                messages.append({"role": "system", "content": patient_context})
+                logger.info(f"✅ {self.specialty}: Contexto del paciente INYECTADO en el chat")
 
             # Añadir historial de conversación
             for msg in history[-10:]:  # Últimos 10 mensajes

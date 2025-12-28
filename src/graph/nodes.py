@@ -265,11 +265,13 @@ async def specialist_chat_node(state: MedicalGraphState) -> dict:
 
         last_user_message = user_messages[-1]
 
+        # ✅ NUEVO: Pasar contexto del paciente también en el chat
         # Generar respuesta conversacional
         response = await agent.chat(
             message=last_user_message.content,  # Pasar contenido como string
             session_id=state.session_id,
             history=state.messages,
+            patient_context=state.patient_context,  # ✅ CRÍTICO: Contexto del paciente
         )
 
         # Crear mensaje de respuesta
