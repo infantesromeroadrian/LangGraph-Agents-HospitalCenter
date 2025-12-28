@@ -70,11 +70,31 @@ main {
     flex: 1;
 }
 
-/* Chat Styles */
+/* Chat Styles - ✅ FIX: Scroll interno suave */
 #chat-messages {
-    padding: 20px;
-    background-color: var(--light-gray);
-    border-radius: var(--border-radius);
+    background-color: var(--hospital-bg-alt);
+    scroll-behavior: smooth;  /* Scroll suave */
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Personalizar scrollbar */
+#chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chat-messages::-webkit-scrollbar-track {
+    background: var(--hospital-accent);
+    border-radius: 10px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb {
+    background: var(--hospital-primary);
+    border-radius: 10px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb:hover {
+    background: var(--hospital-primary-dark);
 }
 
 .message {
@@ -178,18 +198,11 @@ main {
     }
 }
 
-/* Input Area - ✅ FIX: Siempre visible */
+/* Input Area - ✅ FIX: Siempre visible (fuera del área de scroll) */
 .input-group {
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    display: flex !important;  /* Forzar visibilidad */
-    visibility: visible !important;
-    position: sticky;  /* Mantener fijo al final del chat */
-    bottom: 0;
-    background: white;
-    z-index: 10;
-    padding: 10px 0;
 }
 
 #message-input {

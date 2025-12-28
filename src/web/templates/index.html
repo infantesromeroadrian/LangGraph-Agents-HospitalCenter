@@ -49,9 +49,10 @@
                     </div>
                 </div>
             </div>
-            <div class="card-body d-flex flex-column" style="height: calc(100vh - 350px);">
-                <!-- Messages Container -->
-                <div id="chat-messages" class="flex-grow-1 overflow-auto mb-3 medical-chat-area">
+            <!-- ✅ FIX: Separar chat (con scroll) del input (fijo) -->
+            <div class="card-body p-0 d-flex flex-column" style="height: calc(100vh - 350px);">
+                <!-- Messages Container - Con scroll interno -->
+                <div id="chat-messages" class="flex-grow-1 overflow-auto p-3 medical-chat-area">
                     <!-- Mensaje inicial del sistema -->
                     <div class="medical-system-message">
                         <div class="doctor-avatar-container">
@@ -85,27 +86,29 @@
                     </div>
                 </div>
 
-                <!-- Input Form -->
-                <div class="input-group">
-                    <input
-                        type="text"
-                        id="message-input"
-                        class="form-control"
-                        placeholder="Describe tus síntomas..."
-                        autocomplete="off"
-                    >
-                    <button class="btn btn-primary" id="send-btn" type="button">
-                        <i class="fas fa-paper-plane me-1"></i>
-                        Enviar
-                    </button>
-                </div>
+                <!-- ✅ Input Form - FIJO en la parte inferior (fuera del scroll) -->
+                <div class="p-3 bg-white border-top">
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="message-input"
+                            class="form-control"
+                            placeholder="Describe tus síntomas..."
+                            autocomplete="off"
+                        >
+                        <button class="btn btn-primary" id="send-btn" type="button">
+                            <i class="fas fa-paper-plane me-1"></i>
+                            Enviar
+                        </button>
+                    </div>
 
-                <!-- Typing Indicator -->
-                <div id="typing-indicator" class="mt-2 text-muted" style="display: none;">
-                    <small>
-                        <i class="fas fa-spinner fa-spin me-1"></i>
-                        Procesando...
-                    </small>
+                    <!-- Typing Indicator -->
+                    <div id="typing-indicator" class="mt-2 text-muted" style="display: none;">
+                        <small>
+                            <i class="fas fa-spinner fa-spin me-1"></i>
+                            Procesando...
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
