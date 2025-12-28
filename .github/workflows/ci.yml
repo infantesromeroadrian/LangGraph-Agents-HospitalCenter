@@ -29,20 +29,24 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           uv sync --frozen
+          uv pip install ruff mypy bandit[toml] safety
 
       - name: 🧹 Run Ruff (linter)
         run: |
-          uv run ruff check src/ tests/
+          source .venv/bin/activate
+          ruff check src/ tests/
         continue-on-error: true  # No fallar el build por warnings
 
       - name: 🎨 Run Ruff (formatter check)
         run: |
-          uv run ruff format --check src/ tests/
+          source .venv/bin/activate
+          ruff format --check src/ tests/
         continue-on-error: true
 
       - name: 🔍 Run mypy (type checker)
         run: |
-          uv run mypy src/ --ignore-missing-imports --no-strict-optional
+          source .venv/bin/activate
+          mypy src/ --ignore-missing-imports --no-strict-optional
         continue-on-error: true  # Mypy muy estricto, no bloquear
 
   # ============================================================================
@@ -82,13 +86,15 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           uv sync --frozen
+          uv pip install pytest pytest-cov pytest-asyncio
 
       - name: 🧪 Run pytest
         env:
           DATABASE_URL: postgresql://medical_user:medical_password@localhost:5432/medical_db
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          uv run pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
+          source .venv/bin/activate
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
         continue-on-error: false  # Tests DEBEN pasar
 
       - name: 📊 Upload coverage to Codecov
@@ -125,12 +131,14 @@ jobs:
 
       - name: 🔒 Run Bandit (security linter)
         run: |
-          uv run bandit -r src/ -ll -ii
+          source .venv/bin/activate
+          bandit -r src/ -ll -ii
         continue-on-error: true
 
       - name: 🛡️ Run Safety (dependency vulnerabilities)
         run: |
-          uv run safety check --json
+          source .venv/bin/activate
+          safety check --json
         continue-on-error: true
 
       - name: 🔍 Run Trivy (container scan)
@@ -161,6 +169,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile
           push: false
+          load: true
           tags: langgraph-medical:test
           cache-from: type=gha
           cache-to: type=gha,mode=max
