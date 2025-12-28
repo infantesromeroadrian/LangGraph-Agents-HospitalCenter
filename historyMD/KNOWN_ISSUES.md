@@ -1,6 +1,6 @@
 # 🐛 Known Issues & Workarounds
 
-**Last Updated:** 2025-12-27  
+**Last Updated:** 2025-12-27
 **Project:** LangGraph Medical Center v1.0.0
 
 ---
@@ -9,9 +9,9 @@
 
 ### 1. **Event Loop Conflicts with eventlet + asyncpg**
 
-**Status:** ⚠️ WORKAROUND APPLIED  
-**Severity:** MEDIUM  
-**Affected:** Message persistence to PostgreSQL  
+**Status:** ⚠️ WORKAROUND APPLIED
+**Severity:** MEDIUM
+**Affected:** Message persistence to PostgreSQL
 **Commit:** `4dd8d27`
 
 #### **Problem:**
@@ -73,7 +73,7 @@ Message persistence is **disabled** after graph execution:
 - Need to rewrite WebSocket handlers
 - Different patterns than Flask
 
-**Effort:** 2-3 days  
+**Effort:** 2-3 days
 **Files affected:** ~5 files (app.py, routers)
 
 ```python
@@ -104,7 +104,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 - Lower throughput
 - Not modern async pattern
 
-**Effort:** 1-2 hours  
+**Effort:** 1-2 hours
 **Files affected:** 2 files (database_service.py, conversation_memory.py)
 
 ```python
@@ -136,7 +136,7 @@ def add_message(message):
 - More infrastructure
 - Eventual consistency
 
-**Effort:** 3-4 days  
+**Effort:** 3-4 days
 **Dependencies:** Redis or RabbitMQ
 
 ```python
@@ -158,13 +158,13 @@ save_message_async.delay(message.to_dict())
 
 ### 2. **Docker Compose version attribute warning**
 
-**Status:** ⚠️ COSMETIC  
+**Status:** ⚠️ COSMETIC
 **Severity:** LOW
 
 #### **Warning:**
 
 ```
-time="2025-12-27T23:18:55+01:00" level=warning msg="docker-compose.yml: 
+time="2025-12-27T23:18:55+01:00" level=warning msg="docker-compose.yml:
 the attribute `version` is obsolete, it will be ignored"
 ```
 
@@ -189,7 +189,7 @@ services:
 
 ### 3. **Environment variables not set warnings**
 
-**Status:** ⚠️ EXPECTED  
+**Status:** ⚠️ EXPECTED
 **Severity:** LOW
 
 #### **Warnings:**
@@ -236,13 +236,13 @@ services:
 
 ### 4. **RLock warning with eventlet**
 
-**Status:** ℹ️ INFORMATIONAL  
+**Status:** ℹ️ INFORMATIONAL
 **Severity:** LOW
 
 #### **Warning:**
 
 ```
-9 RLock(s) were not greened, to fix this error make sure you 
+9 RLock(s) were not greened, to fix this error make sure you
 run eventlet.monkey_patch() before importing any other modules.
 ```
 
@@ -260,22 +260,22 @@ Some threading primitives (RLocks) were created before eventlet's monkey-patch.
 
 ### 5. **Slow Docker builds (pip)**
 
-**Status:** ✅ FIXED in `d6b2896`  
+**Status:** ✅ FIXED in `d6b2896`
 **Solution:** Migrated to UV package manager
 
-**Before:** 5-10 minutes  
-**After:** 30 seconds  
+**Before:** 5-10 minutes
+**After:** 30 seconds
 **Improvement:** 10-20x faster
 
 ---
 
 ### 6. **No dependency lockfile**
 
-**Status:** ✅ FIXED in `b16b156`  
+**Status:** ✅ FIXED in `b16b156`
 **Solution:** Created uv.lock with hash verification
 
-**Before:** requirements.txt (no hashes)  
-**After:** uv.lock (SHA256 hashes)  
+**Before:** requirements.txt (no hashes)
+**After:** uv.lock (SHA256 hashes)
 **Security:** 🔒 100% reproducible + verified
 
 ---
@@ -315,16 +315,16 @@ Some threading primitives (RLocks) were created before eventlet's monkey-patch.
 
 ## 💬 Questions?
 
-**For issue #1 (event loop):**  
+**For issue #1 (event loop):**
 - Does the system need to persist messages across restarts?
 - Is in-memory checkpointing acceptable?
 - Willing to migrate to FastAPI?
 
-**For other issues:**  
+**For other issues:**
 - Check `DEVELOPMENT.md` for dev setup
 - Check `DOCKER_UV_MIGRATION.md` for Docker details
 
 ---
 
-**Maintained by:** Medical AI Team  
+**Maintained by:** Medical AI Team
 **Last Review:** 2025-12-27

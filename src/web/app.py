@@ -374,7 +374,9 @@ def register_socketio_events(socketio):
                     # Guardar mensajes en background (fire-and-forget)
                     # No bloqueamos el response del usuario
                     if messages_to_save:
-                        logger.info(f"ℹ️ [WebSocket] Encolando {len(messages_to_save)} mensajes para guardar")
+                        logger.info(
+                            f"ℹ️ [WebSocket] Encolando {len(messages_to_save)} mensajes para guardar"
+                        )
                         # NOTE: Guardado de mensajes deshabilitado temporalmente
                         # debido a event loop conflicts con eventlet + asyncpg
                         # TODO: Migrar a FastAPI o implementar queue-based persistence

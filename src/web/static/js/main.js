@@ -1,6 +1,6 @@
 /**
  * LangGraph Medical Center - Main JavaScript
- * 
+ *
  * ✅ MIGRADO A WEBSOCKET NATIVO (FastAPI)
  * Reemplaza Socket.IO con WebSocket estándar W3C
  */
@@ -16,21 +16,21 @@ let currentPatient = null; // ✅ NUEVO: Almacena datos del paciente actual
 // Initialize application
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Initializing Medical System (FastAPI)...');
-    
+
     // ✅ PASO 1: VERIFICAR SI EXISTE PACIENTE REGISTRADO (ANTES DE TODO)
     const medicalRecordNumber = localStorage.getItem('medical_record_number');
-    
+
     if (!medicalRecordNumber) {
         // No hay paciente → Mostrar modal de admisión (ANTESALA)
         console.log('📋 No patient found - showing admission modal');
         showAdmissionModal();
         return; // ⚠️ DETENER inicialización hasta que se complete el registro
     }
-    
+
     // ✅ PASO 2: PACIENTE EXISTE → Cargar datos desde PostgreSQL
     console.log('📋 Patient found in localStorage:', medicalRecordNumber);
     const patientLoaded = await loadPatientData(medicalRecordNumber);
-    
+
     if (!patientLoaded) {
         // Paciente no encontrado en BD → Re-registrar
         console.warn('⚠️ Patient not found in database - re-registration required');
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         showAdmissionModal();
         return;
     }
-    
+
     // ✅ PASO 3: Continuar inicialización normal (SOLO si paciente está cargado)
     await initializeSystemWithPatient();
 });
@@ -48,29 +48,29 @@ document.addEventListener('DOMContentLoaded', async function() {
  */
 async function initializeSystemWithPatient() {
     console.log('✅ Initializing system with patient context:', currentPatient.medical_record_number);
-    
+
     // Create new session (asociada al paciente)
     await createSession();
-    
+
     // Initialize WebSocket connection
     initializeWebSocket();
-    
+
     // Initialize chat handlers
     if (typeof initializeChatHandlers === 'function') {
         initializeChatHandlers();
     }
-    
+
     // Initialize graph visualization
     if (typeof initializeGraphVisualization === 'function') {
         initializeGraphVisualization();
     }
-    
+
     // Setup event listeners
     setupEventListeners();
-    
+
     // Setup admission form handler
     setupAdmissionFormHandler();
-    
+
     console.log('✅ System initialized with patient data');
 }
 
@@ -80,29 +80,29 @@ async function initializeSystemWithPatient() {
 async function loadPatientData(medicalRecordNumber) {
     try {
         console.log('📡 Fetching patient data from API:', medicalRecordNumber);
-        
+
         const response = await fetch(`/api/patients/${medicalRecordNumber}`);
-        
+
         if (!response.ok) {
             console.warn('❌ Patient not found in database (HTTP', response.status, ')');
             return false;
         }
-        
+
         const patient = await response.json();
-        
+
         // Almacenar globalmente
         currentPatient = patient;
         window.currentPatient = patient; // Para acceso desde otros scripts
-        
+
         // Actualizar UI con nombre del paciente
         updatePatientBadge(patient);
-        
+
         console.log('✅ Patient loaded:', patient.full_name, '(HC:', patient.medical_record_number + ')');
         console.log('   - Alergias:', patient.allergies);
         console.log('   - Medicación:', patient.medications);
-        
+
         return true;
-        
+
     } catch (error) {
         console.error('❌ Error loading patient data:', error);
         return false;
@@ -114,22 +114,22 @@ async function loadPatientData(medicalRecordNumber) {
  */
 function showAdmissionModal() {
     const modalElement = document.getElementById('admissionModal');
-    
+
     if (!modalElement) {
         console.error('❌ Admission modal not found in DOM');
         return;
     }
-    
+
     // Configurar el handler del formulario ANTES de mostrar el modal
     setupAdmissionFormHandler();
-    
+
     const modal = new bootstrap.Modal(modalElement, {
         backdrop: 'static',  // No cerrar al hacer click fuera
         keyboard: false      // No cerrar con ESC
     });
-    
+
     modal.show();
-    
+
     console.log('📋 Admission modal displayed - registration required before access');
 }
 
@@ -138,28 +138,28 @@ function showAdmissionModal() {
  */
 function setupAdmissionFormHandler() {
     const form = document.getElementById('admission-form');
-    
+
     if (!form) {
         console.warn('⚠️ Admission form not found');
         return;
     }
-    
+
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         console.log('📤 Submitting admission form...');
-        
+
         // Validar campos requeridos
         const fullName = document.getElementById('full-name').value.trim();
         const age = parseInt(document.getElementById('age').value);
         const gender = document.getElementById('gender').value;
         const consent = document.getElementById('consent').checked;
-        
+
         if (!fullName || !age || !gender || !consent) {
             alert('Por favor, completa todos los campos obligatorios y acepta el consentimiento.');
             return;
         }
-        
+
         // Preparar datos del paciente
         const patientData = {
             full_name: fullName,
@@ -172,32 +172,32 @@ function setupAdmissionFormHandler() {
             medications: document.getElementById('medications').value.trim() || 'Ninguna',
             medical_history: document.getElementById('medical-history').value.trim() || 'Sin antecedentes relevantes'
         };
-        
+
         // Mostrar indicador de procesamiento
         const processingIndicator = document.getElementById('admission-processing');
         const submitBtn = form.querySelector('button[type="submit"]');
-        
+
         if (processingIndicator) processingIndicator.style.display = 'block';
         if (submitBtn) submitBtn.disabled = true;
-        
+
         // Enviar a la API
         const success = await submitAdmissionForm(patientData);
-        
+
         if (success) {
             // Cerrar modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('admissionModal'));
             if (modal) modal.hide();
-            
+
             // Inicializar sistema con el paciente registrado
             await initializeSystemWithPatient();
-            
+
         } else {
             // Error: reactivar formulario
             if (processingIndicator) processingIndicator.style.display = 'none';
             if (submitBtn) submitBtn.disabled = false;
         }
     });
-    
+
     console.log('✅ Admission form handler configured');
 }
 
@@ -207,7 +207,7 @@ function setupAdmissionFormHandler() {
 async function submitAdmissionForm(patientData) {
     try {
         console.log('📡 Sending patient data to API:', patientData);
-        
+
         const response = await fetch('/api/patients', {
             method: 'POST',
             headers: {
@@ -215,31 +215,31 @@ async function submitAdmissionForm(patientData) {
             },
             body: JSON.stringify(patientData)
         });
-        
+
         if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Error al crear paciente');
         }
-        
+
         const patient = await response.json();
-        
+
         console.log('✅ Patient created successfully:', patient.medical_record_number);
-        
+
         // Guardar en localStorage (solo el ID, no todos los datos)
         localStorage.setItem('medical_record_number', patient.medical_record_number);
-        
+
         // Almacenar globalmente
         currentPatient = patient;
         window.currentPatient = patient;
-        
+
         // Actualizar UI
         updatePatientBadge(patient);
-        
+
         // Mostrar confirmación
         showSuccessMessage(`¡Bienvenido/a, ${patient.full_name}! Tu historia clínica es: ${patient.medical_record_number}`);
-        
+
         return true;
-        
+
     } catch (error) {
         console.error('❌ Error submitting admission form:', error);
         alert('Error al registrar paciente: ' + error.message);
@@ -253,18 +253,18 @@ async function submitAdmissionForm(patientData) {
 function updatePatientBadge(patient) {
     // Buscar el badge en el header (definido en base.html)
     const badge = document.getElementById('patient-badge');
-    
+
     if (badge) {
         badge.style.display = 'inline-block';
-        
+
         const nameElement = badge.querySelector('#patient-name');
         if (nameElement) {
             nameElement.textContent = patient.full_name;
         }
-        
+
         console.log('✅ Patient badge updated:', patient.full_name);
     }
-    
+
     // También actualizar el modal de sesión si existe
     const modalPatientName = document.getElementById('modal-patient-name');
     if (modalPatientName) {
@@ -286,9 +286,9 @@ function showSuccessMessage(message) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     document.body.appendChild(alert);
-    
+
     // Auto-dismiss después de 5 segundos
     setTimeout(() => {
         alert.remove();
@@ -304,24 +304,24 @@ function initializeWebSocket() {
         console.error('❌ Cannot initialize WebSocket: No session ID');
         return;
     }
-    
+
     // Construct WebSocket URL
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws/${sessionId}`;
-    
+
     console.log(`📡 Connecting to WebSocket: ${wsUrl}`);
-    
+
     try {
         ws = new WebSocket(wsUrl);
-        
+
         // Connection opened
         ws.onopen = function(event) {
             console.log('✅ WebSocket connected');
             updateConnectionStatus(true);
             reconnectAttempts = 0;
         };
-        
+
         // Listen for messages
         ws.onmessage = function(event) {
             try {
@@ -331,19 +331,19 @@ function initializeWebSocket() {
                 console.error('❌ Error parsing WebSocket message:', error);
             }
         };
-        
+
         // Connection closed
         ws.onclose = function(event) {
             console.log('❌ WebSocket disconnected');
             updateConnectionStatus(false);
-            
+
             // Attempt reconnection
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                 reconnectAttempts++;
                 const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
-                
+
                 console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
-                
+
                 setTimeout(function() {
                     initializeWebSocket();
                 }, delay);
@@ -351,13 +351,13 @@ function initializeWebSocket() {
                 showError('Connection lost. Please reload the page.');
             }
         };
-        
+
         // Connection error
         ws.onerror = function(error) {
             console.error('❌ WebSocket error:', error);
             updateConnectionStatus(false);
         };
-        
+
     } catch (error) {
         console.error('❌ Error creating WebSocket:', error);
         showError('Failed to establish WebSocket connection');
@@ -370,24 +370,24 @@ function initializeWebSocket() {
  */
 function handleWebSocketMessage(data) {
     console.log('📨 WebSocket message received:', data);
-    
+
     switch (data.type) {
         case 'thinking':
             handleThinking(data);
             break;
-            
+
         case 'graph_update':
             handleGraphUpdate(data);
             break;
-            
+
         case 'agent_response':
             handleAgentResponse(data);
             break;
-            
+
         case 'error':
             handleError(data);
             break;
-            
+
         default:
             console.warn('⚠️ Unknown message type:', data.type);
     }
@@ -398,7 +398,7 @@ function handleWebSocketMessage(data) {
  */
 function handleThinking(data) {
     console.log('🤔 Agent thinking:', data.agent_name);
-    
+
     // Show thinking indicator
     const agentName = data.agent_name || 'Sistema';
     showThinkingIndicator(agentName);
@@ -409,20 +409,20 @@ function handleThinking(data) {
  */
 function handleGraphUpdate(data) {
     console.log('📊 Graph update:', data);
-    
+
     // Update graph visualization
     if (typeof highlightActiveNode === 'function' && data.node) {
         highlightActiveNode(data.node);
     }
-    
+
     // Update active specialist display
     updateActiveSpecialist(data.node);
-    
+
     // Update evaluations if available
     if (data.data && data.data.evaluations) {
         updateEvaluationsList(data.data.evaluations);
     }
-    
+
     // Hide thinking indicator
     hideThinkingIndicator();
 }
@@ -432,10 +432,10 @@ function handleGraphUpdate(data) {
  */
 function handleAgentResponse(data) {
     console.log('💬 Agent response:', data);
-    
+
     // Hide thinking indicator
     hideThinkingIndicator();
-    
+
     // Display message in chat
     if (typeof displayMessage === 'function') {
         displayMessage(data);
@@ -465,11 +465,11 @@ function handleError(data) {
 function showThinkingIndicator(agentName) {
     const chatMessages = document.getElementById('chat-messages');
     if (!chatMessages) return;
-    
+
     // Remove existing thinking indicator
     const existing = document.getElementById('thinking-indicator');
     if (existing) existing.remove();
-    
+
     // Create new thinking indicator
     const indicator = document.createElement('div');
     indicator.id = 'thinking-indicator';
@@ -484,7 +484,7 @@ function showThinkingIndicator(agentName) {
             </div>
         </div>
     `;
-    
+
     chatMessages.appendChild(indicator);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -505,16 +505,16 @@ function hideThinkingIndicator() {
 function addMessageToChat(message) {
     const chatMessages = document.getElementById('chat-messages');
     if (!chatMessages) return;
-    
+
     const messageEl = document.createElement('div');
     messageEl.className = `message ${message.role}-message mb-3`;
-    
-    const specialistName = message.specialist_type ? 
-        getSpecialistDisplayName(message.specialist_type) : 
+
+    const specialistName = message.specialist_type ?
+        getSpecialistDisplayName(message.specialist_type) :
         (message.role === 'user' ? 'Tú' : 'Asistente');
-    
+
     const timestamp = formatTimestamp(new Date());
-    
+
     messageEl.innerHTML = `
         <div class="message-header">
             <strong>${specialistName}</strong>
@@ -524,7 +524,7 @@ function addMessageToChat(message) {
             ${message.content}
         </div>
     `;
-    
+
     chatMessages.appendChild(messageEl);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -539,12 +539,12 @@ async function createSession() {
         const requestBody = {
             patient_info: {}
         };
-        
+
         if (currentPatient && currentPatient.medical_record_number) {
             requestBody.medical_record_number = currentPatient.medical_record_number;
             console.log('📋 Creating session for patient:', currentPatient.medical_record_number);
         }
-        
+
         const response = await fetch('/api/sessions', {
             method: 'POST',
             headers: {
@@ -552,26 +552,26 @@ async function createSession() {
             },
             body: JSON.stringify(requestBody)
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             sessionId = data.session_id;
             threadId = data.thread_id;
-            
+
             console.log('✅ Session created:', sessionId);
-            
+
             if (currentPatient) {
                 console.log('   - Associated with patient:', currentPatient.full_name);
             }
-            
+
             // Update UI
             updateSessionInfo();
-            
+
         } else {
             throw new Error(data.error);
         }
-        
+
     } catch (error) {
         console.error('❌ Error creating session:', error);
         showError('Failed to create session');
@@ -585,32 +585,32 @@ async function createSession() {
 function sendMessage() {
     const messageInput = document.getElementById('message-input');
     if (!messageInput) return;
-    
+
     const message = messageInput.value.trim();
     if (!message) return;
-    
+
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         showError('WebSocket not connected. Please wait or reload the page.');
         return;
     }
-    
+
     console.log('📤 Sending message:', message);
-    
+
     // Display user message immediately
     addMessageToChat({
         role: 'user',
         content: message
     });
-    
+
     // Send via WebSocket
     try {
         ws.send(JSON.stringify({
             message: message
         }));
-        
+
         // Clear input
         messageInput.value = '';
-        
+
     } catch (error) {
         console.error('❌ Error sending message:', error);
         showError('Failed to send message');
@@ -622,7 +622,7 @@ function sendMessage() {
  */
 function updateConnectionStatus(connected) {
     const statusEl = document.getElementById('connection-status');
-    
+
     if (statusEl) {
         if (connected) {
             statusEl.innerHTML = '<i class="fas fa-circle text-success"></i> Connected';
@@ -638,7 +638,7 @@ function updateConnectionStatus(connected) {
 function updateSessionInfo() {
     const modalSessionId = document.getElementById('modal-session-id');
     const modalThreadId = document.getElementById('modal-thread-id');
-    
+
     if (modalSessionId) modalSessionId.textContent = sessionId;
     if (modalThreadId) modalThreadId.textContent = threadId;
 }
@@ -649,7 +649,7 @@ function updateSessionInfo() {
 function setupEventListeners() {
     // Enter key in message input
     const messageInput = document.getElementById('message-input');
-    
+
     if (messageInput) {
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -658,10 +658,10 @@ function setupEventListeners() {
             }
         });
     }
-    
+
     // Send button
     const sendBtn = document.getElementById('send-btn');
-    
+
     if (sendBtn) {
         sendBtn.addEventListener('click', sendMessage);
     }
@@ -680,13 +680,13 @@ function showError(message) {
         ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     // Insert at top of chat messages
     const chatMessages = document.getElementById('chat-messages');
-    
+
     if (chatMessages) {
         chatMessages.insertBefore(alert, chatMessages.firstChild);
-        
+
         // Auto-dismiss after 5 seconds
         setTimeout(function() {
             alert.remove();
@@ -699,10 +699,10 @@ function showError(message) {
  */
 function formatTimestamp(date) {
     if (!date) date = new Date();
-    
+
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    
+
     return `${hours}:${minutes}`;
 }
 
@@ -722,7 +722,7 @@ function getSpecialistDisplayName(specialty) {
         'triage': 'Triaje',
         'consensus': 'Consenso'
     };
-    
+
     return names[specialty] || specialty;
 }
 
@@ -742,7 +742,7 @@ function getSpecialistIcon(specialty) {
         'triage': 'fa-clipboard-list',
         'consensus': 'fa-users'
     };
-    
+
     return icons[specialty] || 'fa-stethoscope';
 }
 
@@ -762,7 +762,7 @@ function getSpecialistColor(specialty) {
         'triage': '#ffc107',
         'consensus': '#198754'
     };
-    
+
     return colors[specialty] || '#6c757d';
 }
 
@@ -771,21 +771,21 @@ function getSpecialistColor(specialty) {
  */
 function updateActiveSpecialist(nodeName) {
     const activeSpecialistEl = document.getElementById('active-specialist');
-    
+
     if (!activeSpecialistEl) return;
-    
+
     // Parse node name to get specialist
     let specialistName = 'Ninguno';
     let specialistIcon = 'fa-user-md';
     let specialistColor = '#6c757d';
-    
+
     if (nodeName) {
         const normalized = nodeName.toLowerCase().replace(/_/g, '_');
         specialistName = getSpecialistDisplayName(normalized);
         specialistIcon = getSpecialistIcon(normalized);
         specialistColor = getSpecialistColor(normalized);
     }
-    
+
     activeSpecialistEl.innerHTML = `
         <i class="fas ${specialistIcon} me-2" style="color: ${specialistColor}"></i>
         <span>${specialistName}</span>
@@ -798,31 +798,31 @@ function updateActiveSpecialist(nodeName) {
  */
 function updateEvaluationsList(evaluations) {
     const evaluationsListEl = document.getElementById('evaluations-list');
-    
+
     if (!evaluationsListEl || !evaluations || !Array.isArray(evaluations)) return;
-    
+
     // Clear existing
     evaluationsListEl.innerHTML = '';
-    
+
     // Sort by relevance score
     const sorted = [...evaluations].sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
-    
+
     // Add each evaluation
     sorted.forEach(evaluation => {
         const specialty = evaluation.specialist_type || evaluation.specialty || 'unknown';
         const score = evaluation.relevance_score || 0;
         const reasoning = evaluation.reasoning || 'Sin evaluación disponible';
-        
+
         const specialistName = getSpecialistDisplayName(specialty);
         const specialistIcon = getSpecialistIcon(specialty);
         const specialistColor = getSpecialistColor(specialty);
-        
+
         // Color based on score
         let scoreClass = 'secondary';
         if (score >= 75) scoreClass = 'success';
         else if (score >= 50) scoreClass = 'warning';
         else if (score >= 25) scoreClass = 'info';
-        
+
         const item = document.createElement('div');
         item.className = 'list-group-item';
         item.innerHTML = `
@@ -835,7 +835,7 @@ function updateEvaluationsList(evaluations) {
             </div>
             <small class="text-muted">${reasoning.substring(0, 100)}${reasoning.length > 100 ? '...' : ''}</small>
         `;
-        
+
         evaluationsListEl.appendChild(item);
     });
 }
@@ -849,7 +849,7 @@ window.sendMessage = sendMessage;
  */
 function initializeEmergencyButton() {
     const emergencyBtn = document.getElementById('emergency-btn');
-    
+
     if (emergencyBtn) {
         emergencyBtn.addEventListener('click', function() {
             activateEmergencyMode();
@@ -861,10 +861,10 @@ function initializeEmergencyButton() {
 function activateEmergencyMode() {
     // Mostrar modal de emergencia
     showEmergencyModal();
-    
+
     // Enviar mensaje de emergencia al sistema
     const emergencyMessage = "🚨 MODO EMERGENCIA ACTIVADO - Requiero atención médica urgente inmediata";
-    
+
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
             type: 'emergency',
@@ -872,20 +872,20 @@ function activateEmergencyMode() {
             priority: 'CRITICAL'
         }));
     }
-    
+
     // Scroll al chat para ver respuesta
     const chatMessages = document.getElementById('chat-messages');
     if (chatMessages) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
-    
+
     console.log('🚨 Emergency mode activated');
 }
 
 function showEmergencyModal() {
     // Crear modal de emergencia si no existe
     let modal = document.getElementById('emergency-modal');
-    
+
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'emergency-modal';
@@ -905,17 +905,17 @@ function showEmergencyModal() {
                             <h6><i class="fas fa-phone-alt me-2"></i>Si es una emergencia REAL, llama al 911</h6>
                             <p class="mb-0">Este sistema proporciona orientación médica, pero NO sustituye atención de emergencia.</p>
                         </div>
-                        
+
                         <h6 class="mb-3">Tu consulta tiene máxima prioridad:</h6>
                         <ul class="mb-3">
                             <li>✅ Todos los especialistas están alerta</li>
                             <li>✅ Tiempo de respuesta: &lt;30 segundos</li>
                             <li>✅ Evaluación acelerada activada</li>
                         </ul>
-                        
+
                         <div class="bg-light p-3 rounded">
                             <p class="mb-2"><strong>Describe tu emergencia:</strong></p>
-                            <textarea id="emergency-description" class="form-control" rows="3" 
+                            <textarea id="emergency-description" class="form-control" rows="3"
                                 placeholder="Ejemplo: Dolor de pecho intenso, dificultad para respirar..."></textarea>
                         </div>
                     </div>
@@ -930,19 +930,19 @@ function showEmergencyModal() {
             </div>
         `;
         document.body.appendChild(modal);
-        
+
         // Event listener para el botón de enviar emergencia
         document.getElementById('send-emergency-btn').addEventListener('click', function() {
             const description = document.getElementById('emergency-description').value.trim();
-            
+
             if (description) {
                 // Enviar mensaje de emergencia
                 sendEmergencyMessage(description);
-                
+
                 // Cerrar modal
                 const modalInstance = bootstrap.Modal.getInstance(modal);
                 modalInstance.hide();
-                
+
                 // Auto-focus en el input de chat
                 const messageInput = document.getElementById('message-input');
                 if (messageInput) {
@@ -953,7 +953,7 @@ function showEmergencyModal() {
             }
         });
     }
-    
+
     // Mostrar modal
     const modalInstance = new bootstrap.Modal(modal);
     modalInstance.show();
@@ -961,12 +961,12 @@ function showEmergencyModal() {
 
 function sendEmergencyMessage(description) {
     const emergencyMessage = `🚨 EMERGENCIA MÉDICA: ${description}`;
-    
+
     // Mostrar mensaje en el chat
     if (typeof addMessageToChat === 'function') {
         addMessageToChat('user', emergencyMessage, null);
     }
-    
+
     // Enviar por WebSocket
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
@@ -976,7 +976,7 @@ function sendEmergencyMessage(description) {
             timestamp: new Date().toISOString()
         }));
     }
-    
+
     // Mostrar indicador de procesamiento
     if (typeof showTypingIndicator === 'function') {
         showTypingIndicator();

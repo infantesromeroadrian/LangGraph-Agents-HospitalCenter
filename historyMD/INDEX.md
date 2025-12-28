@@ -114,6 +114,6 @@ Cada vez que implementes un feature importante, crea un documento `.md` en `hist
 
 ---
 
-**Autor:** AI Engineer (Madrid Senior Mode)  
-**Última actualización:** 28-Dic-2025  
+**Autor:** AI Engineer (Madrid Senior Mode)
+**Última actualización:** 28-Dic-2025
 **Total de documentos:** 14

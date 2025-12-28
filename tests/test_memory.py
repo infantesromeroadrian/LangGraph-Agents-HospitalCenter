@@ -25,10 +25,7 @@ def mock_db_service():
 @pytest.fixture
 def sample_session():
     """Sesión de prueba."""
-    return Session(
-        session_id=uuid4(),
-        patient_info={"age": 35, "gender": "M"}
-    )
+    return Session(session_id=uuid4(), patient_info={"age": 35, "gender": "M"})
 
 
 @pytest.fixture
@@ -37,22 +34,14 @@ def sample_messages():
     session_id = uuid4()
 
     return [
-        Message(
-            role="user",
-            content="Tengo dolor de cabeza",
-            session_id=session_id
-        ),
+        Message(role="user", content="Tengo dolor de cabeza", session_id=session_id),
         Message(
             role="assistant",
             content="¿Desde cuándo tienes el dolor?",
             session_id=session_id,
-            specialist_type="triaje"
+            specialist_type="triaje",
         ),
-        Message(
-            role="user",
-            content="Desde hace 2 días",
-            session_id=session_id
-        )
+        Message(role="user", content="Desde hace 2 días", session_id=session_id),
     ]
 
 
@@ -67,8 +56,7 @@ class TestConversationMemory:
         mock_db_service.create_session.return_value = sample_session
 
         result = await memory.create_session(
-            session_id=sample_session.session_id,
-            patient_info=sample_session.patient_info
+            session_id=sample_session.session_id, patient_info=sample_session.patient_info
         )
 
         assert result.session_id == sample_session.session_id
@@ -160,8 +148,7 @@ class TestConversationMemory:
         mock_db_service.get_messages.return_value = sample_messages
 
         formatted = await memory.format_history_for_llm(
-            session_id=sample_messages[0].session_id,
-            max_messages=10
+            session_id=sample_messages[0].session_id, max_messages=10
         )
 
         assert isinstance(formatted, list)
@@ -173,10 +160,7 @@ class TestConversationMemory:
         """Test obtener sesiones activas."""
         memory = ConversationMemory(db=mock_db_service)
 
-        mock_sessions = [
-            Session(session_id=uuid4()),
-            Session(session_id=uuid4())
-        ]
+        mock_sessions = [Session(session_id=uuid4()), Session(session_id=uuid4())]
 
         mock_db_service.get_active_sessions.return_value = mock_sessions
 
@@ -246,4 +230,3 @@ class TestMemoryIntegration:
         # Este test requiere PostgreSQL funcionando
         # Se ejecutará en entorno de integración
         pass
-

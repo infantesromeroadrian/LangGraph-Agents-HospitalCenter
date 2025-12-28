@@ -88,7 +88,7 @@ function initializeEmergencyButton() {
   - 🔴 **Urgente:** Necesito atención inmediata
   - 🟡 **Moderado:** Molestia que requiere atención pronto
   - 🟢 **Consulta:** Consulta médica general
-  
+
 - ✅ Descripción de Síntomas (obligatorio):
   - ¿Qué molestias sientes?
   - ¿Desde cuándo?
@@ -127,16 +127,16 @@ Ejemplo: HC-2025-001234
     dni: "12345678A",
     email: "juan@email.com",
     phone: "+34 600 000 000",
-    
+
     // Información médica
     allergies: "Penicilina",
     medications: "Omeprazol 20mg",
     medicalHistory: "Apendicectomía (2015)",
-    
+
     // Consulta actual
     urgencyLevel: "moderate",
     symptoms: "Dolor de cabeza intenso...",
-    
+
     // Metadata
     medicalRecordNumber: "HC-2025-001234",
     registrationDate: "2025-12-28T18:00:00.000Z",
@@ -165,19 +165,19 @@ Ejemplo: HC-2025-001234
 
 ```
 1. Usuario entra a: http://localhost:5000
-   
+
 2. Sistema detecta: No hay paciente registrado
-   
+
 3. REDIRIGE AUTOMÁTICAMENTE A: /admission
    (Formulario de admisión)
-   
+
 4. Usuario completa formulario y hace submit
-   
+
 5. Sistema:
    - Genera Nº de Historia Clínica (HC-2025-XXXXXX)
    - Guarda datos en localStorage
    - Redirige a la sala de consulta (/)
-   
+
 6. Usuario ya puede chatear con sus datos cargados
 ```
 
@@ -185,14 +185,14 @@ Ejemplo: HC-2025-001234
 
 ```
 1. Usuario entra a: http://localhost:5000
-   
+
 2. Sistema detecta: Hay paciente en localStorage
-   
+
 3. CARGA AUTOMÁTICAMENTE:
    - Nombre del paciente en el header
    - Nº de Historia Clínica
    - Alergias, medicación, antecedentes
-   
+
 4. Usuario continúa su consulta médica
 ```
 
@@ -200,13 +200,13 @@ Ejemplo: HC-2025-001234
 
 ```
 1. Usuario hace click en botón rojo "EMERGENCIA"
-   
+
 2. Aparece modal con:
    - Advertencia de llamar al 911 si es real
    - Campo para describir la emergencia
-   
+
 3. Usuario escribe emergencia y envía
-   
+
 4. Sistema:
    - Envía mensaje con prioridad CRITICAL
    - Notifica a todos los especialistas
@@ -324,7 +324,7 @@ http://localhost:5000/admission
    - Tus datos deberían estar cargados
    - Tu nombre en el header
    - Tu Nº de Historia Clínica
-   
+
 # NOTA: Si borras localStorage, tendrás que volver a registrarte
 ```
 
@@ -340,7 +340,7 @@ Modificar `chat.js` para que al iniciar conversación, envíe datos del paciente
 // PRÓXIMA MEJORA
 function sendPatientContextToChat() {
     const patient = getPatientData();
-    
+
     if (patient && ws) {
         ws.send(JSON.stringify({
             type: 'patient_context',

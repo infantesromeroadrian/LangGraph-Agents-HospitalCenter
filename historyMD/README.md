@@ -1,7 +1,7 @@
 # Historial de Desarrollo - LangGraph Medical Center
 
-**Proyecto**: Sistema de Agentes Médicos con LangGraph  
-**Inicio**: 2025-12-27  
+**Proyecto**: Sistema de Agentes Médicos con LangGraph
+**Inicio**: 2025-12-27
 **Última actualización**: 2025-12-27
 
 ---
@@ -68,4 +68,3 @@ _Ningún error crítico registrado durante desarrollo inicial_
 3. Ajuste de prompts basado en feedback
 4. Optimización de costos OpenAI
 5. Implementar métricas avanzadas
-

@@ -3,9 +3,9 @@
 ## ✅ LO QUE ACABAMOS DE IMPLEMENTAR
 
 ### **PROBLEMA DETECTADO POR EL USUARIO:**
-> "no tiene que haber el formulario de admision en otra pagina si no que tiene que ser una 
-> antesala de la pagina principal porque se supone que para esos tenemos postgres cuando 
-> alguien se registra se tiene que guardar todos sus sintomas datos y de esa manera nuestro 
+> "no tiene que haber el formulario de admision en otra pagina si no que tiene que ser una
+> antesala de la pagina principal porque se supone que para esos tenemos postgres cuando
+> alguien se registra se tiene que guardar todos sus sintomas datos y de esa manera nuestro
 > LLM y agentes tienen acceso a esa informacion"
 
 ### **SOLUCIÓN:**
@@ -26,21 +26,21 @@
 └─────────────────────────────────────────────────────────────────┘
 
 1. Usuario entra → http://localhost:5000
-   
+
 2. Frontend detecta: ¿Hay paciente registrado?
-   
+
    NO → Muestra MODAL de admisión (overlay)
    SÍ → Carga datos del paciente desde PostgreSQL
 
 3. Usuario completa formulario en MODAL
 
 4. Frontend envía POST /api/patients
-   
+
 5. Backend:
    - Genera Nº Historia Clínica (HC-2025-XXXXXX)
    - Guarda en PostgreSQL
    - Retorna datos del paciente
-   
+
 6. Modal se cierra → Chat disponible
 
 7. Al iniciar consulta:
@@ -51,7 +51,7 @@
      * Alergias
      * Medicación actual
      * Antecedentes médicos
-   
+
 8. Agentes dan diagnóstico PERSONALIZADO considerando:
    - Alergias (no recomendar medicamentos prohibidos)
    - Medicación actual (verificar interacciones)
@@ -67,7 +67,7 @@
 ```sql
 CREATE TABLE patients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Datos personales
     full_name VARCHAR(255) NOT NULL,
     age INTEGER NOT NULL CHECK (age >= 0 AND age <= 120),
@@ -75,12 +75,12 @@ CREATE TABLE patients (
     dni VARCHAR(50),
     email VARCHAR(255),
     phone VARCHAR(50),
-    
+
     -- Información médica
     allergies TEXT DEFAULT 'Ninguna conocida',
     medications TEXT DEFAULT 'Ninguna',
     medical_history TEXT DEFAULT 'Sin antecedentes relevantes',
-    
+
     -- Metadata
     medical_record_number VARCHAR(20) UNIQUE NOT NULL,  -- HC-2025-XXXXXX
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -89,7 +89,7 @@ CREATE TABLE patients (
 );
 
 -- Relación con sesiones
-ALTER TABLE sessions 
+ALTER TABLE sessions
 ADD COLUMN patient_id UUID REFERENCES patients(id);
 ```
 
@@ -283,7 +283,7 @@ Modificar `main.js` para:
 document.addEventListener('DOMContentLoaded', async function() {
     // 1. Verificar si hay paciente en localStorage
     let medicalRecordNumber = localStorage.getItem('medical_record_number');
-    
+
     // 2. Si NO hay paciente, mostrar modal de admisión
     if (!medicalRecordNumber) {
         showAdmissionModal();
@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // 3. Si hay paciente, cargar sus datos desde PostgreSQL
         await loadPatientData(medicalRecordNumber);
     }
-    
+
     // 4. Continuar con inicialización normal
     await createSession();
     initializeWebSocket();
@@ -300,24 +300,24 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function loadPatientData(medicalRecordNumber) {
     try {
         const response = await fetch(`/api/patients/${medicalRecordNumber}`);
-        
+
         if (!response.ok) {
             // Paciente no encontrado en DB, solicitar nuevo registro
             localStorage.removeItem('medical_record_number');
             showAdmissionModal();
             return;
         }
-        
+
         const patient = await response.json();
-        
+
         // Guardar en variable global para enviar al LLM
         window.currentPatient = patient;
-        
+
         // Mostrar nombre del paciente en el header
         updatePatientBadge(patient);
-        
+
         console.log('✅ Paciente cargado:', patient.medical_record_number);
-        
+
     } catch (error) {
         console.error('❌ Error cargando paciente:', error);
         showAdmissionModal();
@@ -337,26 +337,26 @@ async function submitAdmission(formData) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(formData)
         });
-        
+
         if (!response.ok) throw new Error('Error creando paciente');
-        
+
         const patient = await response.json();
-        
+
         // Guardar medical_record_number en localStorage
         localStorage.setItem('medical_record_number', patient.medical_record_number);
-        
+
         // Guardar paciente en variable global
         window.currentPatient = patient;
-        
+
         // Actualizar UI
         updatePatientBadge(patient);
-        
+
         // Cerrar modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('admissionModal'));
         modal.hide();
-        
+
         console.log('✅ Paciente registrado:', patient.medical_record_number);
-        
+
     } catch (error) {
         console.error('❌ Error en admisión:', error);
         alert('Error al registrar. Por favor, intenta de nuevo.');
@@ -402,20 +402,20 @@ async def process_user_message(session_id: str, data: dict):
     # Si el mensaje incluye contexto del paciente
     if data.get("type") == "patient_context":
         medical_record = data.get("medical_record_number")
-        
+
         # Obtener contexto completo desde PostgreSQL
         patient_context = await get_patient_context_for_llm(medical_record)
-        
+
         # Añadir al state del grafo médico
         state["patient_context"] = patient_context.to_context_string()
-        
+
         # Asociar sesión con paciente
         await db_service.execute_query(
             "UPDATE sessions SET patient_id = (SELECT id FROM patients WHERE medical_record_number = $1) WHERE id = $2",
             medical_record,
             session_id
         )
-    
+
     # Continuar con procesamiento normal...
 ```
 
@@ -439,12 +439,12 @@ Usuario: "Me duele la cabeza"
 - Medicación actual: Omeprazol 20mg
 - Antecedentes: Hipertensión controlada
 
-LLM: "Para tu dolor de cabeza, considerando que tienes hipertensión 
+LLM: "Para tu dolor de cabeza, considerando que tienes hipertensión
       controlada, te recomiendo paracetamol 500mg cada 6-8 horas.
-      
+
       EVITA ibuprofeno ya que puede elevar tu presión arterial.
-      
-      Si el dolor persiste, consulta con tu médico para ajustar 
+
+      Si el dolor persiste, consulta con tu médico para ajustar
       tu medicación antihipertensiva."
 ```
 

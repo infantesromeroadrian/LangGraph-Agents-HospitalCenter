@@ -12,39 +12,39 @@ let g = null;
  */
 function initializeGraph() {
     const container = document.getElementById('graph-container');
-    
+
     if (!container) return;
-    
+
     // Clear existing
     container.innerHTML = '';
-    
+
     // Setup SVG
     const width = container.clientWidth;
     const height = container.clientHeight;
-    
+
     svg = d3.select('#graph-container')
         .append('svg')
         .attr('width', width)
         .attr('height', height);
-    
+
     // Add zoom capabilities
     const zoom = d3.zoom()
         .scaleExtent([0.5, 3])
         .on('zoom', function(event) {
             g.attr('transform', event.transform);
         });
-    
+
     svg.call(zoom);
-    
+
     // Group for zoomable content
     g = svg.append('g');
-    
+
     // Initialize graph data
     graphData = {
         nodes: [],
         links: []
     };
-    
+
     console.log('📊 Graph visualization initialized');
 }
 
@@ -55,15 +55,15 @@ function updateGraph(stateData) {
     if (!svg || !g) {
         initializeGraph();
     }
-    
+
     console.log('🔄 Updating graph with state:', stateData);
-    
+
     // Build graph from state
     const nodes = buildNodesFromState(stateData);
     const links = buildLinksFromState(stateData);
-    
+
     graphData = { nodes, links };
-    
+
     // Render
     renderGraph();
 }
@@ -76,7 +76,7 @@ function buildNodesFromState(stateData) {
         { id: 'update_context', label: 'Update Context', type: 'system' },
         { id: 'triage', label: 'Triage Agent', type: 'triage' },
     ];
-    
+
     // Specialist nodes
     const specialties = [
         'general_medicine',
@@ -88,7 +88,7 @@ function buildNodesFromState(stateData) {
         'psychiatry',
         'oncology'
     ];
-    
+
     specialties.forEach(specialty => {
         nodes.push({
             id: `specialist_${specialty}`,
@@ -97,23 +97,23 @@ function buildNodesFromState(stateData) {
             specialty: specialty
         });
     });
-    
+
     // Consensus node
     nodes.push({ id: 'consensus', label: 'Consensus Agent', type: 'consensus' });
-    
+
     // Final response node
     nodes.push({ id: 'final_response', label: 'Final Response', type: 'system' });
-    
+
     // Mark active node
     if (stateData && stateData.active_agent) {
         const activeId = stateData.active_agent.toLowerCase().replace(/\s+/g, '_');
         const activeNode = nodes.find(n => n.id.includes(activeId));
-        
+
         if (activeNode) {
             activeNode.active = true;
         }
     }
-    
+
     return nodes;
 }
 
@@ -122,10 +122,10 @@ function buildNodesFromState(stateData) {
  */
 function buildLinksFromState(stateData) {
     const links = [];
-    
+
     // Update Context -> Triage
     links.push({ source: 'update_context', target: 'triage', type: 'flow' });
-    
+
     // Triage -> All Specialists (parallel)
     const specialties = [
         'general_medicine',
@@ -137,7 +137,7 @@ function buildLinksFromState(stateData) {
         'psychiatry',
         'oncology'
     ];
-    
+
     specialties.forEach(specialty => {
         links.push({
             source: 'triage',
@@ -145,7 +145,7 @@ function buildLinksFromState(stateData) {
             type: 'parallel'
         });
     });
-    
+
     // All Specialists -> Consensus (join)
     specialties.forEach(specialty => {
         links.push({
@@ -154,10 +154,10 @@ function buildLinksFromState(stateData) {
             type: 'join'
         });
     });
-    
+
     // Consensus -> Final Response
     links.push({ source: 'consensus', target: 'final_response', type: 'flow' });
-    
+
     return links;
 }
 
@@ -166,14 +166,14 @@ function buildLinksFromState(stateData) {
  */
 function renderGraph() {
     if (!graphData || !g) return;
-    
+
     // Clear previous
     g.selectAll('*').remove();
-    
+
     // Create force simulation
     const width = svg.attr('width');
     const height = svg.attr('height');
-    
+
     simulation = d3.forceSimulation(graphData.nodes)
         .force('link', d3.forceLink(graphData.links)
             .id(d => d.id)
@@ -181,7 +181,7 @@ function renderGraph() {
         .force('charge', d3.forceManyBody().strength(-400))
         .force('center', d3.forceCenter(width / 2, height / 2))
         .force('collide', d3.forceCollide().radius(50));
-    
+
     // Draw links
     const link = g.append('g')
         .attr('class', 'links')
@@ -193,7 +193,7 @@ function renderGraph() {
         .attr('stroke', d => getLinkColor(d.type))
         .attr('stroke-width', 2)
         .attr('stroke-dasharray', d => d.type === 'parallel' ? '5,5' : null);
-    
+
     // Draw nodes
     const node = g.append('g')
         .attr('class', 'nodes')
@@ -206,14 +206,14 @@ function renderGraph() {
             .on('start', dragstarted)
             .on('drag', dragged)
             .on('end', dragended));
-    
+
     // Node circles
     node.append('circle')
         .attr('r', d => d.type === 'specialist' ? 40 : 35)
         .attr('fill', d => getNodeColor(d))
         .attr('stroke', d => d.active ? '#FFD700' : '#fff')
         .attr('stroke-width', d => d.active ? 4 : 2);
-    
+
     // Node icons
     node.append('text')
         .attr('class', 'node-icon')
@@ -223,7 +223,7 @@ function renderGraph() {
         .attr('font-size', '20px')
         .attr('fill', '#fff')
         .text(d => getNodeIcon(d));
-    
+
     // Node labels
     node.append('text')
         .attr('class', 'node-label')
@@ -232,7 +232,7 @@ function renderGraph() {
         .attr('font-size', '12px')
         .attr('font-weight', 'bold')
         .text(d => d.label);
-    
+
     // Update positions on tick
     simulation.on('tick', () => {
         link
@@ -240,7 +240,7 @@ function renderGraph() {
             .attr('y1', d => d.source.y)
             .attr('x2', d => d.target.x)
             .attr('y2', d => d.target.y);
-        
+
         node
             .attr('transform', d => `translate(${d.x},${d.y})`);
     });
@@ -253,7 +253,7 @@ function getNodeColor(node) {
     if (node.active) {
         return '#FFD700'; // Gold for active
     }
-    
+
     switch (node.type) {
         case 'triage':
             return '#17a2b8'; // Info blue
@@ -326,20 +326,20 @@ function dragended(event, d) {
  */
 function highlightActiveNode(agentName) {
     if (!graphData) return;
-    
+
     // Reset all nodes
     graphData.nodes.forEach(node => {
         node.active = false;
     });
-    
+
     // Mark active node
     const activeId = agentName.toLowerCase().replace(/\s+/g, '_');
     const activeNode = graphData.nodes.find(n => n.id.includes(activeId));
-    
+
     if (activeNode) {
         activeNode.active = true;
     }
-    
+
     // Re-render
     renderGraph();
 }
@@ -351,9 +351,9 @@ function resetGraph() {
     if (simulation) {
         simulation.stop();
     }
-    
+
     graphData = null;
-    
+
     if (g) {
         g.selectAll('*').remove();
     }
@@ -363,13 +363,13 @@ function resetGraph() {
 window.addEventListener('resize', () => {
     if (svg && graphData) {
         const container = document.getElementById('graph-container');
-        
+
         if (container) {
             const width = container.clientWidth;
             const height = container.clientHeight;
-            
+
             svg.attr('width', width).attr('height', height);
-            
+
             if (simulation) {
                 simulation.force('center', d3.forceCenter(width / 2, height / 2));
                 simulation.alpha(0.3).restart();
@@ -377,4 +377,3 @@ window.addEventListener('resize', () => {
         }
     }
 });
-

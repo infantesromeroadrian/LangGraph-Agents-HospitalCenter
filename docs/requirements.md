@@ -1,8 +1,8 @@
 # Documento de Requisitos - LangGraph Medical Center
 
-**Proyecto**: Sistema de Agentes Médicos con LangGraph  
-**Fecha**: 2025-12-27  
-**Estado**: Aprobado  
+**Proyecto**: Sistema de Agentes Médicos con LangGraph
+**Fecha**: 2025-12-27
+**Estado**: Aprobado
 **Versión**: 1.0
 
 ---
@@ -320,7 +320,6 @@ Usuario → Flask → LangGraph → [Triaje → Fan-out → 8 Especialistas → 
 
 ---
 
-**Estado del Documento**: ✅ APROBADO  
-**Aprobado por**: Medical AI Team  
+**Estado del Documento**: ✅ APROBADO
+**Aprobado por**: Medical AI Team
 **Fecha de Aprobación**: 2025-12-27
-

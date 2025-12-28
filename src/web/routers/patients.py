@@ -4,8 +4,6 @@ Router de FastAPI para gestión de pacientes.
 
 import logging
 from datetime import datetime
-from typing import List, Optional
-from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -269,7 +267,7 @@ async def update_patient(
         update_values.append(medical_record_number)
 
         query = f"""
-            UPDATE patients 
+            UPDATE patients
             SET {", ".join(update_fields)}, updated_at = CURRENT_TIMESTAMP
             WHERE medical_record_number = ${param_num}
             RETURNING *
@@ -314,8 +312,8 @@ async def update_patient(
         ) from e
 
 
-@router.get("/patients", response_model=List[PatientSummary])
-async def list_patients(limit: int = 50, offset: int = 0) -> List[PatientSummary]:
+@router.get("/patients", response_model=list[PatientSummary])
+async def list_patients(limit: int = 50, offset: int = 0) -> list[PatientSummary]:
     """
     Lista todos los pacientes (resumen).
 

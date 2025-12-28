@@ -6,7 +6,6 @@ Verifica que todos los endpoints funcionen correctamente despu√©s de la migraci√
 
 import pytest
 from fastapi.testclient import TestClient
-
 from src.web.main import app
 
 client = TestClient(app)

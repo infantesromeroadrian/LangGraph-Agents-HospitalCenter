@@ -24,13 +24,7 @@ def sample_state():
     return MedicalGraphState(
         session_id=session_id,
         thread_id=f"thread_{session_id}",
-        messages=[
-            Message(
-                role="user",
-                content="Tengo dolor en el pecho",
-                session_id=session_id
-            )
-        ]
+        messages=[Message(role="user", content="Tengo dolor en el pecho", session_id=session_id)],
     )
 
 
@@ -41,18 +35,18 @@ def sample_evaluations():
         SpecialistEvaluation(
             specialist_type="cardiologia",
             relevance_score=85.0,
-            reasoning="Alta relevancia cardiovascular"
+            reasoning="Alta relevancia cardiovascular",
         ),
         SpecialistEvaluation(
             specialist_type="medicina_general",
             relevance_score=60.0,
-            reasoning="Relevancia moderada"
+            reasoning="Relevancia moderada",
         ),
         SpecialistEvaluation(
             specialist_type="neurologia",
             relevance_score=25.0,
-            reasoning="Baja relevancia neurológica"
-        )
+            reasoning="Baja relevancia neurológica",
+        ),
     ]
 
 
@@ -64,10 +58,7 @@ class TestMedicalGraphState:
         session_id = uuid4()
         thread_id = f"thread_{session_id}"
 
-        state = MedicalGraphState(
-            session_id=session_id,
-            thread_id=thread_id
-        )
+        state = MedicalGraphState(session_id=session_id, thread_id=thread_id)
 
         assert state.session_id == session_id
         assert state.thread_id == thread_id
@@ -100,7 +91,7 @@ class TestTriageNode:
             "urgency": "no_urgente",
             "main_symptoms": ["dolor pecho"],
             "recommended_specialties": ["cardiologia"],
-            "reasoning": "Evaluación cardiovascular recomendada"
+            "reasoning": "Evaluación cardiovascular recomendada",
         }
         mock_triage_class.return_value = mock_agent
 
@@ -115,10 +106,7 @@ class TestTriageNode:
     @pytest.mark.asyncio
     async def test_triage_node_no_messages(self):
         """Test nodo de triaje sin mensajes."""
-        empty_state = MedicalGraphState(
-            session_id=uuid4(),
-            thread_id="test_thread"
-        )
+        empty_state = MedicalGraphState(session_id=uuid4(), thread_id="test_thread")
 
         updates = await triage_node(empty_state)
 
@@ -147,10 +135,7 @@ class TestSpecialistEvaluationNode:
     @pytest.mark.asyncio
     @patch("src.graph.nodes.AgentFactory")
     async def test_specialist_evaluation_success(
-        self,
-        mock_factory,
-        sample_state,
-        sample_evaluations
+        self, mock_factory, sample_state, sample_evaluations
     ):
         """Test evaluación exitosa de especialista."""
         # Mock del agente
@@ -159,10 +144,7 @@ class TestSpecialistEvaluationNode:
         mock_factory.create_agent.return_value = mock_agent
 
         # Datos para el nodo
-        data = {
-            "specialty": "cardiologia",
-            "state": sample_state
-        }
+        data = {"specialty": "cardiologia", "state": sample_state}
 
         # Ejecutar nodo
         updates = await specialist_evaluation_node(data)
@@ -175,10 +157,7 @@ class TestSpecialistEvaluationNode:
     async def test_specialist_evaluation_no_agent(self, sample_state):
         """Test evaluación cuando agente no se puede crear."""
         with patch("src.graph.nodes.AgentFactory.create_agent", return_value=None):
-            data = {
-                "specialty": "especialidad_inexistente",
-                "state": sample_state
-            }
+            data = {"specialty": "especialidad_inexistente", "state": sample_state}
 
             updates = await specialist_evaluation_node(data)
 
@@ -191,10 +170,7 @@ class TestConsensusNode:
     @pytest.mark.asyncio
     @patch("src.graph.nodes.ConsensusAgent")
     async def test_consensus_node_success(
-        self,
-        mock_consensus_class,
-        sample_state,
-        sample_evaluations
+        self, mock_consensus_class, sample_state, sample_evaluations
     ):
         """Test ejecución exitosa del consenso."""
         # Agregar evaluaciones al estado
@@ -207,7 +183,7 @@ class TestConsensusNode:
             "confidence": 0.9,
             "reasoning": "Alta relevancia cardiovascular",
             "alternative_specialists": ["medicina_general"],
-            "urgency_level": "media"
+            "urgency_level": "media",
         }
         mock_consensus_class.return_value = mock_agent
 
@@ -232,11 +208,7 @@ class TestSpecialistChatNode:
 
     @pytest.mark.asyncio
     @patch("src.graph.nodes.AgentFactory")
-    async def test_specialist_chat_success(
-        self,
-        mock_factory,
-        sample_state
-    ):
+    async def test_specialist_chat_success(self, mock_factory, sample_state):
         """Test chat exitoso con especialista."""
         # Configurar estado con especialista activo
         sample_state.active_specialist = "cardiologia"
@@ -275,4 +247,3 @@ class TestGraphIntegration:
         # Este test requiere el grafo real compilado
         # Se implementará en test_system_integration.py
         pass
-

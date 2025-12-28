@@ -203,5 +203,5 @@ curl -I http://localhost:5000/static/css/style.css
 
 El sistema ahora se ve como un **hospital online profesional**, no como un chatbot técnico.
 
-Dime si ves los cambios y si te gusta el nuevo diseño. 
+Dime si ves los cambios y si te gusta el nuevo diseño.
 Luego continuamos con el **Paso B: Formulario de Admisión** 🚀

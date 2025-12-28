@@ -268,7 +268,7 @@ services:
   app:
     deploy:
       replicas: 3
-    
+
   nginx:
     image: nginx:alpine
     ports:
@@ -318,6 +318,5 @@ Para problemas de deployment:
 
 ---
 
-**Versión del Documento**: 1.0  
+**Versión del Documento**: 1.0
 **Última actualización**: 2025-12-27
-

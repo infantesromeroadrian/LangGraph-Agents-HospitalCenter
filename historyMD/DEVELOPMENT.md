@@ -234,7 +234,7 @@ uv sync --link-mode=copy
    # Escribir código
    # Ejecutar tests frecuentemente
    uv run pytest tests/test_mi_feature.py
-   
+
    # Check de calidad
    uv run ruff check src/ --fix
    uv run mypy src/
@@ -244,7 +244,7 @@ uv sync --link-mode=copy
    ```bash
    # Pre-commit se ejecuta automáticamente, pero puedes forzarlo:
    uv run pre-commit run --all-files
-   
+
    # Si todo OK:
    git add .
    git commit -m "feat: mi nueva feature"
@@ -254,7 +254,7 @@ uv sync --link-mode=copy
    ```bash
    # Ejecutar toda la suite de tests
    uv run pytest --cov=src
-   
+
    # Verificar que no rompiste nada
    git push origin feature/mi-feature
    ```
@@ -279,11 +279,11 @@ def process_data(data: str) -> str:
 def evaluate(message: str, session_id: UUID) -> SpecialistEvaluation:
     """
     Evalúa si un caso pertenece a esta especialidad.
-    
+
     Args:
         message: Mensaje del paciente
         session_id: ID de la sesión
-    
+
     Returns:
         Evaluación del especialista
     """

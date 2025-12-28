@@ -9,7 +9,6 @@ con asyncpg y habilitando la persistencia de mensajes.
 import logging
 from uuid import UUID
 
-import httpx
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from src.graph.medical_graph import medical_graph_manager
@@ -82,8 +81,8 @@ async def load_patient_context_for_session(session_id: str) -> tuple[dict, str |
             # 1. Obtener patient_id desde la sesión
             session_row = await conn.fetchrow(
                 """
-                SELECT patient_id 
-                FROM sessions 
+                SELECT patient_id
+                FROM sessions
                 WHERE session_id = $1
                 """,
                 UUID(session_id),
@@ -98,7 +97,7 @@ async def load_patient_context_for_session(session_id: str) -> tuple[dict, str |
             # 2. Cargar datos completos del paciente
             patient_row = await conn.fetchrow(
                 """
-                SELECT 
+                SELECT
                     medical_record_number,
                     full_name,
                     age,
@@ -145,7 +144,7 @@ Medicación Actual:
 Antecedentes Médicos:
 {patient_row["medical_history"] or "Sin antecedentes relevantes"}
 
-IMPORTANTE: Considera esta información al hacer recomendaciones médicas. 
+IMPORTANTE: Considera esta información al hacer recomendaciones médicas.
 No recomiendes medicamentos a los que el paciente sea alérgico.
 Verifica interacciones con la medicación actual.
 """.strip()
@@ -212,7 +211,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         logger.error(traceback.format_exc())
         try:
             await manager.send_json(session_id, {"type": "error", "message": str(e)})
-        except Exception:  # noqa: S110
+        except Exception:
             pass  # El websocket ya está cerrado
         finally:
             manager.disconnect(session_id)

@@ -294,7 +294,6 @@ Este proyecto es privado y confidencial.
 
 ---
 
-**Versión**: 1.0.0  
-**Estado**: Production Ready  
+**Versión**: 1.0.0
+**Estado**: Production Ready
 **Última actualización**: 2025-12-27
-

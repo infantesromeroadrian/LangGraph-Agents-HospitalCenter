@@ -90,7 +90,7 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO medical_user;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO medical_user;
 
 -- Insert default data
-INSERT INTO sessions (session_id, patient_info) VALUES 
+INSERT INTO sessions (session_id, patient_info) VALUES
     ('00000000-0000-0000-0000-000000000000', '{"type": "system", "description": "System default session"}'::jsonb)
 ON CONFLICT DO NOTHING;
 
@@ -100,7 +100,7 @@ ON CONFLICT DO NOTHING;
 -- ========================================
 CREATE TABLE IF NOT EXISTS patients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    
+
     -- Datos personales
     full_name VARCHAR(255) NOT NULL,
     age INTEGER NOT NULL CHECK (age >= 0 AND age <= 120),
@@ -108,18 +108,18 @@ CREATE TABLE IF NOT EXISTS patients (
     dni VARCHAR(50),
     email VARCHAR(255),
     phone VARCHAR(50),
-    
+
     -- Información médica
     allergies TEXT DEFAULT 'Ninguna conocida',
     medications TEXT DEFAULT 'Ninguna',
     medical_history TEXT DEFAULT 'Sin antecedentes relevantes',
-    
+
     -- Metadata
     medical_record_number VARCHAR(20) UNIQUE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     last_visit TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
+
     -- Índices para búsqueda rápida
     CONSTRAINT unique_medical_record UNIQUE (medical_record_number)
 );
@@ -145,7 +145,7 @@ CREATE TRIGGER trigger_update_patient_timestamp
     EXECUTE FUNCTION update_patient_updated_at();
 
 -- Relación entre sesiones y pacientes
-ALTER TABLE sessions 
+ALTER TABLE sessions
 ADD COLUMN IF NOT EXISTS patient_id UUID REFERENCES patients(id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_sessions_patient ON sessions(patient_id);
@@ -153,4 +153,3 @@ CREATE INDEX IF NOT EXISTS idx_sessions_patient ON sessions(patient_id);
 -- Permisos
 GRANT ALL PRIVILEGES ON TABLE patients TO medical_user;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medical_user;
-

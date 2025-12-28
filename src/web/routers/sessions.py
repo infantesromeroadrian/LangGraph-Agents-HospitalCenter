@@ -7,7 +7,7 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from src.memory.conversation_memory import conversation_memory
 from src.services.database_service import db_service

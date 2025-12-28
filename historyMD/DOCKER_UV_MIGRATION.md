@@ -1,7 +1,7 @@
 # 🐳 Docker + UV Migration Guide
 
-**Date:** 2025-12-27  
-**Status:** ✅ COMPLETED  
+**Date:** 2025-12-27
+**Status:** ✅ COMPLETED
 **Commit:** `d6b2896`
 
 ---
@@ -336,17 +336,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Build Docker image
         run: |
           docker-compose -f docker/docker-compose.yml build app
-      
+
       - name: Test health endpoint
         run: |
           docker-compose -f docker/docker-compose.yml up -d
           sleep 10
           curl -f http://localhost:5000/health || exit 1
-      
+
       - name: Run tests in container
         run: |
           docker-compose exec -T app pytest tests/
@@ -414,5 +414,5 @@ docker secret create openai_key /path/to/key
 - Docker version: 20.10+ ✅
 - Docker Compose version: 2.x ✅
 
-**Maintainer:** Medical AI Team  
+**Maintainer:** Medical AI Team
 **Last Updated:** 2025-12-27

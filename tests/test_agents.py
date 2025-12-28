@@ -17,13 +17,15 @@ from src.models.message import Message
 def mock_llm_service():
     """Mock del servicio LLM."""
     service = AsyncMock()
-    service.complete_json = AsyncMock(return_value={
-        "relevance_score": 75.0,
-        "reasoning": "Test reasoning",
-        "key_symptoms": ["test symptom"],
-        "confidence": 0.8,
-        "recommended_actions": ["test action"]
-    })
+    service.complete_json = AsyncMock(
+        return_value={
+            "relevance_score": 75.0,
+            "reasoning": "Test reasoning",
+            "key_symptoms": ["test symptom"],
+            "confidence": 0.8,
+            "recommended_actions": ["test action"],
+        }
+    )
     service.complete = AsyncMock(return_value="Test response")
     return service
 
@@ -31,11 +33,7 @@ def mock_llm_service():
 @pytest.fixture
 def sample_message():
     """Mensaje de prueba."""
-    return Message(
-        role="user",
-        content="Tengo dolor en el pecho",
-        session_id=uuid4()
-    )
+    return Message(role="user", content="Tengo dolor en el pecho", session_id=uuid4())
 
 
 @pytest.fixture
@@ -45,7 +43,7 @@ def sample_triage_analysis():
         "urgency": "no_urgente",
         "main_symptoms": ["dolor pecho"],
         "recommended_specialties": ["cardiologia"],
-        "reasoning": "Síntomas cardiovasculares"
+        "reasoning": "Síntomas cardiovasculares",
     }
 
 
@@ -70,7 +68,7 @@ class TestBaseMedicalAgent:
         evaluation = await agent.evaluate(
             query=sample_message.content,
             triage_analysis=sample_triage_analysis,
-            session_id=sample_message.session_id
+            session_id=sample_message.session_id,
         )
 
         assert isinstance(evaluation, SpecialistEvaluation)
@@ -84,9 +82,7 @@ class TestBaseMedicalAgent:
         agent = CardiologyAgent(llm_service=mock_llm_service)
 
         response = await agent.chat(
-            message="¿Es grave?",
-            conversation_history=[sample_message],
-            session_context={}
+            message="¿Es grave?", conversation_history=[sample_message], session_context={}
         )
 
         assert isinstance(response, str)
@@ -115,12 +111,11 @@ class TestTriageAgent:
             "main_symptoms": ["dolor pecho", "dificultad respirar"],
             "recommended_specialties": ["cardiologia", "medicina_general"],
             "reasoning": "Síntomas cardiovasculares urgentes",
-            "additional_info_needed": []
+            "additional_info_needed": [],
         }
 
         analysis = await agent.analyze(
-            patient_query="Tengo dolor en el pecho y no puedo respirar bien",
-            session_id=uuid4()
+            patient_query="Tengo dolor en el pecho y no puedo respirar bien", session_id=uuid4()
         )
 
         assert "urgency" in analysis
@@ -143,7 +138,12 @@ class TestTriageAgent:
         agent = TriageAgent()
 
         analysis = {
-            "recommended_specialties": ["cardiologia", "neurologia", "medicina_general", "pediatria"]
+            "recommended_specialties": [
+                "cardiologia",
+                "neurologia",
+                "medicina_general",
+                "pediatria",
+            ]
         }
 
         top_3 = agent.get_top_specialties(analysis, top_n=3)
@@ -162,18 +162,18 @@ class TestConsensusAgent:
             SpecialistEvaluation(
                 specialist_type="cardiologia",
                 relevance_score=90.0,
-                reasoning="Síntomas cardiovasculares claros"
+                reasoning="Síntomas cardiovasculares claros",
             ),
             SpecialistEvaluation(
                 specialist_type="medicina_general",
                 relevance_score=70.0,
-                reasoning="Consulta general posible"
+                reasoning="Consulta general posible",
             ),
             SpecialistEvaluation(
                 specialist_type="neurologia",
                 relevance_score=30.0,
-                reasoning="No síntomas neurológicos"
-            )
+                reasoning="No síntomas neurológicos",
+            ),
         ]
 
     @pytest.mark.asyncio
@@ -200,15 +200,11 @@ class TestConsensusAgent:
 
         low_evaluations = [
             SpecialistEvaluation(
-                specialist_type="cardiologia",
-                relevance_score=20.0,
-                reasoning="No aplica"
+                specialist_type="cardiologia", relevance_score=20.0, reasoning="No aplica"
             ),
             SpecialistEvaluation(
-                specialist_type="neurologia",
-                relevance_score=15.0,
-                reasoning="No aplica"
-            )
+                specialist_type="neurologia", relevance_score=15.0, reasoning="No aplica"
+            ),
         ]
 
         decision = await agent.select_specialist(low_evaluations)
@@ -267,4 +263,3 @@ class TestAgentFactory:
         assert AgentFactory.validate_specialty("cardiologia") is True
         assert AgentFactory.validate_specialty("medicina_general") is True
         assert AgentFactory.validate_specialty("inexistente") is False
-

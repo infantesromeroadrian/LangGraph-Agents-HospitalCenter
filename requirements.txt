@@ -55,4 +55,3 @@ tenacity==9.0.0
 # Production Server
 gunicorn==23.0.0
 eventlet==0.37.0  # Para SocketIO async con asyncpg
-

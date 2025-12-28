@@ -1,6 +1,6 @@
 # ✅ PATIENT REGISTRATION SYSTEM - IMPLEMENTACIÓN COMPLETA
 
-**Fecha:** 28 de Diciembre de 2025  
+**Fecha:** 28 de Diciembre de 2025
 **Estado:** ✅ **FUNCIONAL Y PROBADO**
 
 ---
@@ -82,8 +82,8 @@ El sistema ahora requiere que **TODOS los usuarios se registren como pacientes**
 |---------|---------|
 | `docker/init-db.sql` | +80 líneas - Tabla `patients` + índices |
 
-**Total de código agregado:** ~1,120 líneas  
-**Total de archivos modificados:** 12  
+**Total de código agregado:** ~1,120 líneas
+**Total de archivos modificados:** 12
 **Total de archivos nuevos:** 2
 
 ---
@@ -269,7 +269,7 @@ Ninguna
 Antecedentes Médicos:
 Sin antecedentes relevantes
 
-IMPORTANTE: Considera esta información al hacer recomendaciones médicas. 
+IMPORTANTE: Considera esta información al hacer recomendaciones médicas.
 No recomiendes medicamentos a los que el paciente sea alérgico.
 Verifica interacciones con la medicación actual.
 
@@ -290,7 +290,7 @@ Tengo dolor de cabeza y fiebre desde hace 2 días
 
 1. **localStorage:** Si el usuario borra los datos del navegador, perderá la asociación con su HC. Necesitará buscar su número de historia clínica manualmente o registrarse de nuevo (duplicado).
    - **Solución futura:** Login con email/DNI
-   
+
 2. **No hay edición de perfil:** Si el paciente quiere actualizar sus alergias, debe hacerse manualmente en la BD o via API PATCH.
    - **Solución futura:** Página de perfil en `/profile`
 
@@ -339,8 +339,8 @@ El sistema de registro de pacientes está **100% funcional**. Ahora la plataform
 
 ---
 
-**Autor:** AI Engineer (Madrid Senior Mode)  
-**Tecnologías:** FastAPI, PostgreSQL, LangGraph, Bootstrap 5, WebSocket nativo  
-**Líneas de código:** ~1,120 líneas nuevas  
-**Tiempo de desarrollo:** 1 sesión  
+**Autor:** AI Engineer (Madrid Senior Mode)
+**Tecnologías:** FastAPI, PostgreSQL, LangGraph, Bootstrap 5, WebSocket nativo
+**Líneas de código:** ~1,120 líneas nuevas
+**Tiempo de desarrollo:** 1 sesión
 **Estado:** ✅ PRODUCTION READY
