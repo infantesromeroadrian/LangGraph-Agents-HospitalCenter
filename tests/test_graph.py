@@ -87,13 +87,15 @@ class TestTriageNode:
         """Test ejecución exitosa del nodo de triaje."""
         # Mock del agente de triaje
         mock_agent = AsyncMock()
-        # TriageAgent uses evaluate() not analyze()
+        # TriageAgent.evaluate() must return dict with 'summary' field (used in line 56 of nodes.py)
         mock_agent.evaluate = AsyncMock(
             return_value={
                 "urgency": "no_urgente",
                 "main_symptoms": ["dolor pecho"],
                 "recommended_specialties": ["cardiologia"],
                 "reasoning": "Evaluación cardiovascular recomendada",
+                "summary": "Paciente presenta dolor torácico. Se recomienda evaluación por cardiología.",
+                "symptoms": ["dolor pecho"],
             }
         )
         mock_triage_class.return_value = mock_agent
