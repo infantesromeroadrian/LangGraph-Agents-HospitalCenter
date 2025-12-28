@@ -101,8 +101,8 @@ main {
 }
 
 .user-message {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--hospital-primary);  /* Azul/verde hospitalario */
+    color: #FFFFFF !important;  /* Forzar blanco sobre fondo oscuro */
     margin-left: auto;
     text-align: right;
 }
@@ -127,6 +127,11 @@ main {
 
 .message-content {
     line-height: 1.6;
+}
+
+/* ✅ FIX: Asegurar que el texto del usuario sea visible */
+.user-message .message-content {
+    color: #FFFFFF !important;
 }
 
 .message-time {
@@ -173,11 +178,18 @@ main {
     }
 }
 
-/* Input Area */
+/* Input Area - ✅ FIX: Siempre visible */
 .input-group {
     border-radius: var(--border-radius);
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex !important;  /* Forzar visibilidad */
+    visibility: visible !important;
+    position: sticky;  /* Mantener fijo al final del chat */
+    bottom: 0;
+    background: white;
+    z-index: 10;
+    padding: 10px 0;
 }
 
 #message-input {
@@ -247,6 +259,20 @@ main {
 @keyframes dash {
     to {
         stroke-dashoffset: -1000;
+    }
+}
+
+/* ✅ NUEVO: Pulse animation para indicador de estado */
+.pulse-dot {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
     }
 }
 

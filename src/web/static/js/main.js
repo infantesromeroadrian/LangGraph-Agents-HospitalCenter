@@ -271,6 +271,18 @@ function updatePatientBadge(patient) {
         modalPatientName.textContent = `${patient.full_name} (${patient.medical_record_number})`;
         modalPatientName.className = 'text-success fw-bold';
     }
+
+    // ✅ NUEVO: Actualizar panel de información del paciente (sidebar)
+    const hcDisplay = document.getElementById('hc-display');
+    const nameDisplay = document.getElementById('name-display');
+
+    if (hcDisplay) {
+        hcDisplay.textContent = patient.medical_record_number;
+    }
+
+    if (nameDisplay) {
+        nameDisplay.textContent = patient.full_name;
+    }
 }
 
 /**
@@ -767,30 +779,31 @@ function getSpecialistColor(specialty) {
 }
 
 /**
- * Update active specialist display
+ * ✅ UPDATED: Update active specialist display (compatible con nuevo diseño)
  */
 function updateActiveSpecialist(nodeName) {
-    const activeSpecialistEl = document.getElementById('active-specialist');
+    const specialistStatusEl = document.getElementById('specialist-status');
 
-    if (!activeSpecialistEl) return;
+    if (!specialistStatusEl) return;
 
     // Parse node name to get specialist
-    let specialistName = 'Ninguno';
+    let specialistName = 'Sistema de Triaje';
     let specialistIcon = 'fa-user-md';
-    let specialistColor = '#6c757d';
+    let statusText = 'Listo para atenderte';
+    let statusIcon = 'fa-circle text-success';
 
     if (nodeName) {
         const normalized = nodeName.toLowerCase().replace(/_/g, '_');
         specialistName = getSpecialistDisplayName(normalized);
         specialistIcon = getSpecialistIcon(normalized);
-        specialistColor = getSpecialistColor(normalized);
+        statusText = 'Analizando tu caso...';
+        statusIcon = 'fa-circle text-warning pulse-dot';
     }
 
-    activeSpecialistEl.innerHTML = `
-        <i class="fas ${specialistIcon} me-2" style="color: ${specialistColor}"></i>
-        <span>${specialistName}</span>
+    specialistStatusEl.innerHTML = `
+        <i class="fas ${statusIcon} me-1"></i>
+        <span>${specialistName} - ${statusText}</span>
     `;
-    activeSpecialistEl.className = 'alert alert-info';
 }
 
 /**

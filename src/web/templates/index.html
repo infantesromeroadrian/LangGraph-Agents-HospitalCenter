@@ -111,81 +111,56 @@
         </div>
     </div>
 
-    <!-- Panel de Especialistas -->
+    <!-- Panel de Estado (Simplificado) -->
     <div class="col-md-4">
         <div class="card shadow h-100 specialists-panel">
-            <div class="card-header">
+            <div class="card-header bg-gradient" style="background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-secondary) 100%); color: white;">
                 <h5 class="mb-0">
-                    <i class="fas fa-user-doctor me-2"></i>
-                    Equipo Médico
+                    <i class="fas fa-heartbeat me-2"></i>
+                    Estado de la Consulta
                 </h5>
             </div>
             <div class="card-body">
-                <!-- Especialista Activo -->
-                <div class="active-doctor-section mb-4">
-                    <h6 class="section-title">
-                        <i class="fas fa-stethoscope me-2"></i>
-                        Médico Atendiendo
+                <!-- Especialista Activo (Simplificado) -->
+                <div id="active-specialist" class="alert alert-info mb-3">
+                    <h6 class="alert-heading mb-2">
+                        <i class="fas fa-user-md me-2"></i>
+                        Atención Médica
                     </h6>
-                    <div id="active-specialist" class="active-doctor-card">
-                        <div class="doctor-avatar-sm">
-                            <i class="fas fa-user-md"></i>
-                        </div>
-                        <div class="doctor-info">
-                            <div class="doctor-name">Sistema de Triaje</div>
-                            <div class="doctor-specialty">Evaluación Inicial</div>
-                            <div class="doctor-status">
-                                <i class="fas fa-circle text-success pulse-dot"></i>
-                                <span>Esperando consulta</span>
-                            </div>
-                        </div>
-                    </div>
+                    <p class="mb-0" id="specialist-status">
+                        <i class="fas fa-circle text-success pulse-dot me-1"></i>
+                        <span>Sistema de Triaje - Listo para atenderte</span>
+                    </p>
                 </div>
 
-                <!-- Especialistas Evaluando -->
-                <div class="specialists-evaluating mb-4">
-                    <h6 class="section-title">
-                        <i class="fas fa-users-medical me-2"></i>
-                        Especialistas Evaluando
-                        <span class="badge bg-primary ms-2" id="specialists-count">0</span>
+                <!-- Info del Paciente (Nuevo - útil) -->
+                <div class="alert alert-light border">
+                    <h6 class="mb-2">
+                        <i class="fas fa-id-card me-2 text-primary"></i>
+                        Tu Información
                     </h6>
-                    <div id="evaluations-list" class="specialists-list">
-                        <div class="no-evaluations text-center text-muted py-4">
-                            <i class="fas fa-clipboard-list fa-2x mb-2"></i>
-                            <p class="mb-0">Los especialistas aparecerán aquí cuando evalúen tu caso</p>
-                        </div>
-                    </div>
+                    <p class="mb-1 small" id="patient-info-display">
+                        <strong>HC:</strong> <span id="hc-display">Cargando...</span>
+                    </p>
+                    <p class="mb-0 small" id="patient-name-display">
+                        <strong>Paciente:</strong> <span id="name-display">-</span>
+                    </p>
                 </div>
 
-                <!-- Proceso Médico (opcional: se puede ocultar) -->
-                <div class="medical-process-info" style="display: none;">
-                    <h6 class="section-title">
-                        <i class="fas fa-route me-2"></i>
-                        Proceso de Evaluación
-                    </h6>
-                    <div class="process-steps">
-                        <div class="process-step completed">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <span>Triaje Inicial</span>
-                        </div>
-                        <div class="process-step active">
-                            <i class="fas fa-spinner fa-spin me-2"></i>
-                            <span>Evaluación Paralela</span>
-                        </div>
-                        <div class="process-step">
-                            <i class="fas fa-circle me-2"></i>
-                            <span>Consenso Médico</span>
-                        </div>
-                        <div class="process-step">
-                            <i class="fas fa-circle me-2"></i>
-                            <span>Diagnóstico Final</span>
-                        </div>
+                <!-- Ayuda Rápida -->
+                <div class="card bg-light border-0">
+                    <div class="card-body p-3">
+                        <h6 class="card-title text-muted mb-2">
+                            <i class="fas fa-question-circle me-2"></i>
+                            ¿Cómo funciona?
+                        </h6>
+                        <ol class="small mb-0 ps-3">
+                            <li>Describe tus síntomas con detalle</li>
+                            <li>El sistema analiza tu caso</li>
+                            <li>Te conecta con el especialista adecuado</li>
+                            <li>Recibes recomendaciones personalizadas</li>
+                        </ol>
                     </div>
-                </div>
-
-                <!-- Gráfico simplificado (mantener si quieres, o eliminar) -->
-                <div id="graph-container" class="d-none border rounded" style="height: 300px; background: var(--hospital-accent);">
-                    <!-- D3.js graph will be rendered here -->
                 </div>
             </div>
         </div>
