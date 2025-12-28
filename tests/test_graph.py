@@ -82,6 +82,7 @@ class TestTriageNode:
     """Tests para el nodo de triaje."""
 
     @pytest.mark.asyncio
+    @patch("src.graph.nodes.TriageAgent")
     async def test_triage_node_success(self, mock_triage_class, sample_state):
         """Test ejecución exitosa del nodo de triaje."""
         # Mock del agente de triaje
