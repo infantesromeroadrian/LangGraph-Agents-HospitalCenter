@@ -132,3 +132,6 @@ $RECYCLE.BIN/
 
 # UV cache (optional - can be committed for reproducibility)
 # .python-version  # Uncomment if you want to ignore this
+
+# AI Agent system prompts (local development only)
+AGENTS.md
