@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}Admisión de Paciente - Hospital Virtual AI{% endblock %}
+
+{% block content %}
+<!-- 🏥 FORMULARIO DE ADMISIÓN DEL PACIENTE -->
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <!-- Banner de bienvenida -->
+        <div class="admission-welcome-card mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="admission-title">
+                        <i class="fas fa-clipboard-check me-3"></i>
+                        Admisión de Paciente
+                    </h1>
+                    <p class="admission-subtitle mb-0">
+                        Por favor, completa el siguiente formulario para iniciar tu consulta médica. 
+                        Tus datos están protegidos y encriptados.
+                    </p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="admission-icon">
+                        <i class="fas fa-user-md fa-4x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de admisión -->
+        <form id="admission-form" class="admission-form-card">
+            <!-- Sección 1: Datos Personales -->
+            <div class="form-section">
+                <h5 class="section-title">
+                    <i class="fas fa-user me-2"></i>
+                    1. Datos Personales
+                </h5>
+                
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label for="full-name" class="form-label required">Nombre Completo</label>
+                        <input type="text" class="form-control" id="full-name" name="fullName" required
+                               placeholder="Ej: Juan Pérez García">
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="age" class="form-label required">Edad</label>
+                        <input type="number" class="form-control" id="age" name="age" min="0" max="120" required
+                               placeholder="Ej: 35">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="gender" class="form-label required">Género</label>
+                        <select class="form-select" id="gender" name="gender" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                            <option value="O">Otro</option>
+                            <option value="N">Prefiero no decir</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-8 mb-3">
+                        <label for="dni" class="form-label">DNI/Documento de Identidad</label>
+                        <input type="text" class="form-control" id="dni" name="dni"
+                               placeholder="Ej: 12345678A (opcional)">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               placeholder="tu@email.com (opcional)">
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label for="phone" class="form-label">Teléfono</label>
+                        <input type="tel" class="form-control" id="phone" name="phone"
+                               placeholder="+34 600 000 000 (opcional)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección 2: Información Médica -->
+            <div class="form-section">
+                <h5 class="section-title">
+                    <i class="fas fa-notes-medical me-2"></i>
+                    2. Información Médica
+                </h5>
+                
+                <div class="mb-3">
+                    <label for="allergies" class="form-label">Alergias Conocidas</label>
+                    <textarea class="form-control" id="allergies" name="allergies" rows="2"
+                              placeholder="Ej: Penicilina, Polen, Ninguna conocida..."></textarea>
+                    <small class="form-text text-muted">Si no tienes alergias, escribe "Ninguna"</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="medications" class="form-label">Medicación Actual</label>
+                    <textarea class="form-control" id="medications" name="medications" rows="2"
+                              placeholder="Ej: Omeprazol 20mg (1 vez al día), Ninguna..."></textarea>
+                    <small class="form-text text-muted">Lista todos los medicamentos que tomas regularmente</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="medical-history" class="form-label">Antecedentes Médicos / Cirugías Previas</label>
+                    <textarea class="form-control" id="medical-history" name="medicalHistory" rows="2"
+                              placeholder="Ej: Apendicectomía (2015), Hipertensión controlada, Ninguna..."></textarea>
+                </div>
+            </div>
+
+            <!-- Sección 3: Motivo de Consulta -->
+            <div class="form-section">
+                <h5 class="section-title">
+                    <i class="fas fa-heartbeat me-2"></i>
+                    3. Motivo de Consulta
+                </h5>
+                
+                <div class="mb-3">
+                    <label for="urgency-level" class="form-label required">Nivel de Urgencia</label>
+                    <div class="urgency-selector">
+                        <div class="form-check urgency-option urgent">
+                            <input class="form-check-input" type="radio" name="urgencyLevel" id="urgent" 
+                                   value="urgent" required>
+                            <label class="form-check-label" for="urgent">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Urgente</strong>
+                                <small class="d-block">Necesito atención inmediata</small>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check urgency-option moderate">
+                            <input class="form-check-input" type="radio" name="urgencyLevel" id="moderate" 
+                                   value="moderate">
+                            <label class="form-check-label" for="moderate">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Moderado</strong>
+                                <small class="d-block">Molestia que requiere atención pronto</small>
+                            </label>
+                        </div>
+                        
+                        <div class="form-check urgency-option routine">
+                            <input class="form-check-input" type="radio" name="urgencyLevel" id="routine" 
+                                   value="routine">
+                            <label class="form-check-label" for="routine">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Consulta</strong>
+                                <small class="d-block">Consulta médica general</small>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="symptoms" class="form-label required">Describe tus Síntomas</label>
+                    <textarea class="form-control" id="symptoms" name="symptoms" rows="4" required
+                              placeholder="Describe tus síntomas con el mayor detalle posible:&#10;- ¿Qué molestias sientes?&#10;- ¿Desde cuándo?&#10;- ¿Qué lo desencadenó?&#10;- ¿Nivel de dolor (1-10)?"></textarea>
+                    <small class="form-text text-muted">Cuanto más detallado, mejor será el diagnóstico</small>
+                </div>
+            </div>
+
+            <!-- Consentimiento y Disclaimer -->
+            <div class="form-section bg-light">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="consent" name="consent" required>
+                    <label class="form-check-label" for="consent">
+                        <small>
+                            <strong>He leído y acepto:</strong><br>
+                            • Mis datos serán tratados de forma confidencial según normativa HIPAA/GDPR<br>
+                            • Este sistema proporciona orientación médica, pero NO sustituye la consulta presencial<br>
+                            • En caso de emergencia real, debo llamar al 911 o acudir a urgencias
+                        </small>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Botón de envío -->
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg px-5">
+                    <i class="fas fa-stethoscope me-2"></i>
+                    Iniciar Consulta Médica
+                </button>
+            </div>
+
+            <!-- Indicador de procesamiento -->
+            <div id="processing-indicator" class="text-center mt-3" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Procesando...</span>
+                </div>
+                <p class="mt-2 text-muted">Generando tu historia clínica...</p>
+            </div>
+        </form>
+
+        <!-- Info de seguridad -->
+        <div class="security-badges mt-4 text-center">
+            <span class="badge bg-success me-2">
+                <i class="fas fa-lock me-1"></i>Datos Encriptados
+            </span>
+            <span class="badge bg-success me-2">
+                <i class="fas fa-shield-alt me-1"></i>HIPAA Compliant
+            </span>
+            <span class="badge bg-success">
+                <i class="fas fa-user-shield me-1"></i>GDPR Protected
+            </span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/admission.js"></script>
+{% endblock %}

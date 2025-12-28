@@ -1,0 +1,88 @@
+# ✅ MIGRADO A FASTAPI - docker-compose para FastAPI + PostgreSQL
+# version field is obsolete in newer Docker Compose
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: medical-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: medical_user
+      POSTGRES_PASSWORD: medical_password
+      POSTGRES_DB: medical_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medical_user -d medical_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: langgraph-medical-center
+    restart: unless-stopped
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.1}
+      OPENAI_TEMPERATURE: ${OPENAI_TEMPERATURE:-0.7}
+      DATABASE_URL: postgresql://medical_user:medical_password@postgres:5432/medical_db
+      APP_HOST: 0.0.0.0
+      APP_PORT: 5000
+      APP_DEBUG: ${APP_DEBUG:-False}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-dev-secret-change-in-production}
+      RECURSION_LIMIT: ${RECURSION_LIMIT:-50}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../logs:/app/logs
+      - ../src:/app/src:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - medical-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: medical-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@medical.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - medical-network
+    profiles:
+      - dev
+
+networks:
+  medical-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local

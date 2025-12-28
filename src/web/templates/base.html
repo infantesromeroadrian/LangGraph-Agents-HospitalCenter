@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LangGraph Medical Center{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- D3.js para visualización de grafo -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <!-- ✅ MIGRADO: Ya no usamos Socket.IO, ahora WebSocket nativo -->
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 🏥 Hospital Header -->
+    <nav class="navbar navbar-expand-lg navbar-dark hospital-navbar shadow-sm">
+        <div class="container-fluid px-4">
+            <!-- Logo y Nombre del Hospital -->
+            <a class="navbar-brand hospital-brand d-flex align-items-center" href="/">
+                <div class="hospital-logo-container me-3">
+                    <!-- Logo SVG del Hospital -->
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Cruz médica -->
+                        <rect x="18" y="8" width="12" height="32" rx="2" fill="white"/>
+                        <rect x="8" y="18" width="32" height="12" rx="2" fill="white"/>
+                        <!-- Círculo de fondo -->
+                        <circle cx="24" cy="24" r="22" stroke="white" stroke-width="2" fill="none" opacity="0.3"/>
+                        <!-- Pulso cardíaco -->
+                        <path d="M8 24 L12 24 L15 18 L18 30 L21 24 L40 24" stroke="white" stroke-width="1.5" fill="none" opacity="0.5"/>
+                    </svg>
+                </div>
+                <div class="hospital-brand-text">
+                    <div class="hospital-name">Hospital Virtual AI</div>
+                    <div class="hospital-tagline">Atención Médica 24/7</div>
+                </div>
+            </a>
+
+            <!-- Botón responsive -->
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Menú de navegación -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <!-- Botón de Emergencias (siempre visible) -->
+                    <li class="nav-item me-3">
+                        <button class="btn btn-emergency" id="emergency-btn" title="Emergencia Médica">
+                            <i class="fas fa-ambulance me-2"></i>
+                            <span class="d-none d-md-inline">Emergencia</span>
+                        </button>
+                    </li>
+                    
+                    <!-- Estado de conexión -->
+                    <li class="nav-item me-3">
+                        <div class="connection-status-badge" id="connection-status">
+                            <i class="fas fa-circle pulse-dot"></i>
+                            <span class="d-none d-lg-inline ms-2">Sistema Activo</span>
+                        </div>
+                    </li>
+
+                    <!-- Información del paciente (se llenará con JS) -->
+                    <li class="nav-item">
+                        <div class="patient-info-badge" id="patient-badge" style="display: none;">
+                            <i class="fas fa-user-circle me-2"></i>
+                            <span id="patient-name">Paciente</span>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container-fluid py-4">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 🏥 Hospital Footer -->
+    <footer class="hospital-footer mt-5">
+        <div class="container-fluid px-4">
+            <div class="row py-4">
+                <!-- Información del Hospital -->
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h6 class="footer-heading">
+                        <i class="fas fa-hospital-alt me-2"></i>
+                        Hospital Virtual AI
+                    </h6>
+                    <p class="footer-text">
+                        Atención médica inteligente las 24 horas del día, los 7 días de la semana.
+                        Sistema de diagnóstico asistido por IA con 8 especialidades médicas.
+                    </p>
+                    <div class="footer-badges">
+                        <span class="badge footer-badge me-2">
+                            <i class="fas fa-shield-alt me-1"></i>HIPAA Compliant
+                        </span>
+                        <span class="badge footer-badge">
+                            <i class="fas fa-lock me-1"></i>Datos Encriptados
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Especialidades -->
+                <div class="col-md-4 mb-3 mb-md-0">
+                    <h6 class="footer-heading">
+                        <i class="fas fa-user-md me-2"></i>
+                        Especialidades Disponibles
+                    </h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <ul class="footer-list">
+                                <li><i class="fas fa-heartbeat me-1"></i> Cardiología</li>
+                                <li><i class="fas fa-brain me-1"></i> Neurología</li>
+                                <li><i class="fas fa-bone me-1"></i> Traumatología</li>
+                                <li><i class="fas fa-child me-1"></i> Pediatría</li>
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="footer-list">
+                                <li><i class="fas fa-notes-medical me-1"></i> Medicina General</li>
+                                <li><i class="fas fa-lungs me-1"></i> Oncología</li>
+                                <li><i class="fas fa-hand-sparkles me-1"></i> Dermatología</li>
+                                <li><i class="fas fa-head-side-virus me-1"></i> Psiquiatría</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contacto y Emergencias -->
+                <div class="col-md-4">
+                    <h6 class="footer-heading">
+                        <i class="fas fa-phone-alt me-2"></i>
+                        Contacto y Emergencias
+                    </h6>
+                    <div class="emergency-contact">
+                        <div class="emergency-number">
+                            <i class="fas fa-ambulance me-2"></i>
+                            <strong>Emergencias:</strong> 911
+                        </div>
+                        <div class="footer-text mt-2">
+                            <i class="fas fa-envelope me-2"></i>
+                            info@hospitalvirtualai.com
+                        </div>
+                        <div class="footer-text">
+                            <i class="fas fa-clock me-2"></i>
+                            Disponible 24/7
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Copyright y tecnología -->
+            <div class="row border-top pt-3 mt-3">
+                <div class="col-md-6 text-center text-md-start">
+                    <small class="footer-copyright">
+                        © 2025 Hospital Virtual AI. Todos los derechos reservados.
+                    </small>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <small class="footer-tech">
+                        <i class="fas fa-robot me-1"></i>
+                        Powered by FastAPI · GPT-5.1 · LangGraph · PostgreSQL
+                    </small>
+                </div>
+            </div>
+
+            <!-- Disclaimer médico -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="medical-disclaimer">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <small>
+                            <strong>Aviso Importante:</strong> Este sistema proporciona orientación médica asistida por IA. 
+                            No sustituye la consulta presencial con un profesional de la salud. En caso de emergencia, 
+                            contacte inmediatamente con los servicios de urgencias (911).
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script src="/static/js/main.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

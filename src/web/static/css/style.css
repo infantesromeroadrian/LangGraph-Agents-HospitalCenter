@@ -1,0 +1,1267 @@
+/* 🏥 Hospital Virtual AI - Medical Professional Styles */
+
+/* ========================================
+   PALETA DE COLORES HOSPITALARIA
+   ======================================== */
+:root {
+    /* Colores principales del hospital */
+    --hospital-primary: #2E7D89;        /* Verde azulado médico (profesional y calmante) */
+    --hospital-primary-dark: #1F5661;   /* Versión oscura */
+    --hospital-primary-light: #3A9AAA;  /* Versión clara */
+    
+    --hospital-secondary: #50B8C1;      /* Aguamarina claro (energía y confianza) */
+    --hospital-accent: #E8F4F8;         /* Fondo suave (limpieza y claridad) */
+    --hospital-accent-dark: #D1E9F0;    /* Hover states */
+    
+    /* Colores de estado médico */
+    --hospital-emergency: #E74C3C;      /* Rojo urgencias */
+    --hospital-emergency-bg: #FADBD8;   /* Fondo emergencia */
+    --hospital-warning: #F39C12;        /* Naranja moderado */
+    --hospital-warning-bg: #FCF3CF;     /* Fondo advertencia */
+    --hospital-success: #27AE60;        /* Verde saludable */
+    --hospital-success-bg: #D5F4E6;     /* Fondo éxito */
+    --hospital-info: #3498DB;           /* Azul informativo */
+    --hospital-info-bg: #D6EAF8;        /* Fondo info */
+    
+    /* Neutrales profesionales */
+    --hospital-text: #2C3E50;           /* Texto principal (alta legibilidad) */
+    --hospital-text-muted: #7F8C8D;     /* Texto secundario */
+    --hospital-bg: #FFFFFF;             /* Fondo blanco puro */
+    --hospital-bg-alt: #F8FAFB;         /* Fondo alternativo */
+    --hospital-border: #E0E6E8;         /* Bordes suaves */
+    --hospital-shadow: rgba(46, 125, 137, 0.08); /* Sombra sutil */
+    
+    /* Elementos de UI */
+    --border-radius: 12px;              /* Bordes redondeados modernos */
+    --border-radius-sm: 8px;            /* Bordes pequeños */
+    --border-radius-lg: 16px;           /* Bordes grandes */
+    --transition-speed: 0.3s;           /* Transiciones suaves */
+    
+    /* Tipografía médica */
+    --font-family-primary: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+    --font-family-headings: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+/* ========================================
+   TIPOGRAFÍA PROFESIONAL
+   ======================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
+
+body {
+    font-family: var(--font-family-primary);
+    background: linear-gradient(135deg, var(--hospital-accent) 0%, #FFFFFF 100%);
+    color: var(--hospital-text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-family-headings);
+    font-weight: 700;
+    color: var(--hospital-primary);
+    letter-spacing: -0.02em;
+}
+
+main {
+    flex: 1;
+}
+
+/* Chat Styles */
+#chat-messages {
+    padding: 20px;
+    background-color: var(--light-gray);
+    border-radius: var(--border-radius);
+}
+
+.message {
+    margin-bottom: 15px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-bubble {
+    padding: 12px 16px;
+    border-radius: var(--border-radius);
+    max-width: 80%;
+    word-wrap: break-word;
+}
+
+.user-message {
+    background-color: var(--primary-color);
+    color: white;
+    margin-left: auto;
+    text-align: right;
+}
+
+.assistant-message {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.specialist-header {
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.specialist-header i {
+    margin-right: 6px;
+}
+
+.message-content {
+    line-height: 1.6;
+}
+
+.message-time {
+    font-size: 0.75em;
+    color: #6c757d;
+    margin-top: 6px;
+}
+
+.user-message .message-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Typing Indicator */
+.typing-dots {
+    display: flex;
+    gap: 5px;
+    padding: 10px 0;
+}
+
+.typing-dots span {
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+    30% {
+        opacity: 1;
+        transform: translateY(-10px);
+    }
+}
+
+/* Input Area */
+.input-group {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#message-input {
+    border: 2px solid #dee2e6;
+    padding: 12px;
+    font-size: 1rem;
+}
+
+#message-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: none;
+}
+
+#send-btn {
+    padding: 12px 24px;
+    font-weight: 600;
+}
+
+/* Graph Visualization */
+#graph-viz {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: var(--border-radius);
+}
+
+.node {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.node circle {
+    transition: all 0.3s ease;
+}
+
+.node:hover circle {
+    filter: brightness(1.1);
+    stroke-width: 3px;
+}
+
+.node.active circle {
+    stroke: #FFD700;
+    stroke-width: 4px;
+    filter: drop-shadow(0 0 8px #FFD700);
+}
+
+.node-label {
+    fill: #343a40;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.link {
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.link:hover {
+    opacity: 1;
+}
+
+.link-parallel {
+    stroke-dasharray: 5, 5;
+    animation: dash 20s linear infinite;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -1000;
+    }
+}
+
+/* Specialist Evaluations List */
+#evaluations-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.evaluation-item {
+    padding: 10px;
+    border-left: 4px solid var(--primary-color);
+    margin-bottom: 8px;
+    background-color: white;
+    border-radius: 5px;
+}
+
+.evaluation-score {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+/* Cards */
+.card {
+    border: none;
+    border-radius: var(--border-radius);
+}
+
+.card-header {
+    border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+}
+
+/* Alert Styles */
+.alert {
+    border-radius: var(--border-radius);
+    border: none;
+}
+
+/* Active Specialist Badge */
+#active-specialist {
+    padding: 12px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+}
+
+#active-specialist i {
+    font-size: 1.2em;
+}
+
+/* Scrollbar Styling */
+#chat-messages::-webkit-scrollbar,
+#evaluations-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#chat-messages::-webkit-scrollbar-track,
+#evaluations-list::-webkit-scrollbar-track {
+    background: var(--light-gray);
+    border-radius: 4px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb,
+#evaluations-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+
+#chat-messages::-webkit-scrollbar-thumb:hover,
+#evaluations-list::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .message-bubble {
+        max-width: 90%;
+    }
+    
+    .col-md-8, .col-md-4 {
+        margin-bottom: 20px;
+    }
+}
+
+/* Loading Animation */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Connection Status */
+#connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#connection-status i {
+    font-size: 0.8em;
+}
+
+/* ========================================
+   🏥 NAVBAR HOSPITALARIO
+   ======================================== */
+.hospital-navbar {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-primary-dark) 100%) !important;
+    border-bottom: 3px solid var(--hospital-secondary);
+    padding: 0.8rem 0;
+    box-shadow: 0 4px 12px var(--hospital-shadow);
+}
+
+.hospital-brand {
+    text-decoration: none !important;
+    transition: transform var(--transition-speed) ease;
+}
+
+.hospital-brand:hover {
+    transform: translateY(-2px);
+}
+
+.hospital-logo-container {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+}
+
+.hospital-brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.hospital-name {
+    font-family: var(--font-family-headings);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+}
+
+.hospital-tagline {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Botón de Emergencias */
+.btn-emergency {
+    background: linear-gradient(135deg, var(--hospital-emergency) 0%, #C0392B 100%);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-weight: 700;
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--border-radius-sm);
+    transition: all var(--transition-speed) ease;
+    box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    animation: pulse-emergency 2s infinite;
+}
+
+.btn-emergency:hover {
+    background: var(--hospital-emergency);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5);
+    color: white;
+}
+
+@keyframes pulse-emergency {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+    }
+    50% {
+        box-shadow: 0 4px 20px rgba(231, 76, 60, 0.6);
+    }
+}
+
+/* Badge de estado de conexión */
+.connection-status-badge {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-sm);
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+}
+
+.pulse-dot {
+    color: var(--hospital-success);
+    animation: pulse-dot 2s infinite;
+    font-size: 0.6rem;
+}
+
+@keyframes pulse-dot {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Badge de información del paciente */
+.patient-info-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-sm);
+    color: white;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+}
+
+/* ========================================
+   🏥 FOOTER HOSPITALARIO
+   ======================================== */
+.hospital-footer {
+    background: linear-gradient(180deg, #FFFFFF 0%, var(--hospital-accent) 100%);
+    border-top: 3px solid var(--hospital-secondary);
+    color: var(--hospital-text);
+    box-shadow: 0 -4px 12px var(--hospital-shadow);
+}
+
+.footer-heading {
+    color: var(--hospital-primary);
+    font-family: var(--font-family-headings);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.footer-text {
+    color: var(--hospital-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+.footer-badges {
+    margin-top: 1rem;
+}
+
+.footer-badge {
+    background: var(--hospital-primary);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+}
+
+.footer-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-list li {
+    color: var(--hospital-text-muted);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    transition: color var(--transition-speed) ease;
+}
+
+.footer-list li:hover {
+    color: var(--hospital-primary);
+}
+
+.footer-list li i {
+    color: var(--hospital-secondary);
+    width: 16px;
+}
+
+.emergency-contact {
+    background: var(--hospital-emergency-bg);
+    border-left: 4px solid var(--hospital-emergency);
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+}
+
+.emergency-number {
+    color: var(--hospital-emergency);
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.footer-copyright,
+.footer-tech {
+    color: var(--hospital-text-muted);
+    font-size: 0.8rem;
+}
+
+.medical-disclaimer {
+    background: var(--hospital-warning-bg);
+    border: 1px solid var(--hospital-warning);
+    border-radius: var(--border-radius-sm);
+    padding: 1rem;
+    text-align: center;
+    color: var(--hospital-text);
+}
+
+.medical-disclaimer strong {
+    color: var(--hospital-warning);
+}
+
+/* ========================================
+   🎨 MEJORAS VISUALES GENERALES
+   ======================================== */
+
+/* Cards con estilo hospitalario */
+.card {
+    border: 1px solid var(--hospital-border);
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px var(--hospital-shadow);
+    transition: all var(--transition-speed) ease;
+    background: var(--hospital-bg);
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px var(--hospital-shadow);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-primary-dark) 100%) !important;
+    color: white !important;
+    border-bottom: 3px solid var(--hospital-secondary) !important;
+    padding: 1rem 1.5rem;
+    font-weight: 700;
+}
+
+.card-header h5 {
+    color: white !important;
+    margin: 0;
+    font-family: var(--font-family-headings);
+}
+
+/* Botones con estilo hospitalario */
+.btn-primary {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-primary-dark) 100%);
+    border: none;
+    font-weight: 600;
+    transition: all var(--transition-speed) ease;
+    box-shadow: 0 4px 12px rgba(46, 125, 137, 0.2);
+}
+
+.btn-primary:hover {
+    background: var(--hospital-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 125, 137, 0.3);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--hospital-success) 0%, #229954 100%);
+    border: none;
+}
+
+/* Alerts con estilo médico */
+.alert-info {
+    background: var(--hospital-info-bg);
+    border-left: 4px solid var(--hospital-info);
+    border-radius: var(--border-radius-sm);
+    color: var(--hospital-text);
+}
+
+.alert-success {
+    background: var(--hospital-success-bg);
+    border-left: 4px solid var(--hospital-success);
+    border-radius: var(--border-radius-sm);
+}
+
+.alert-warning {
+    background: var(--hospital-warning-bg);
+    border-left: 4px solid var(--hospital-warning);
+    border-radius: var(--border-radius-sm);
+}
+
+.alert-danger {
+    background: var(--hospital-emergency-bg);
+    border-left: 4px solid var(--hospital-emergency);
+    border-radius: var(--border-radius-sm);
+}
+
+
+/* ========================================
+   🏥 BANNER DE BIENVENIDA
+   ======================================== */
+.hospital-welcome-banner {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-secondary) 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 8px 24px var(--hospital-shadow);
+    margin-bottom: 2rem;
+}
+
+.welcome-title {
+    font-family: var(--font-family-headings);
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: white;
+}
+
+.welcome-subtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.6;
+}
+
+.hospital-stats {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-number {
+    font-family: var(--font-family-headings);
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.85);
+    margin-top: 0.3rem;
+}
+
+/* ========================================
+   💬 ÁREA DE CHAT MÉDICO
+   ======================================== */
+.consultation-room .card-body {
+    background: linear-gradient(180deg, #FFFFFF 0%, var(--hospital-accent) 100%);
+}
+
+.consultation-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    font-size: 0.9rem;
+    backdrop-filter: blur(10px);
+}
+
+.medical-chat-area {
+    padding: 1.5rem;
+    background: white;
+    border-radius: var(--border-radius);
+}
+
+/* Mensaje del sistema médico */
+.medical-system-message {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--hospital-info-bg);
+    border: 2px solid var(--hospital-info);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    animation: slideInLeft 0.5s ease;
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.doctor-avatar-container {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.doctor-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.8rem;
+    box-shadow: 0 4px 12px var(--hospital-shadow);
+}
+
+.online-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    background: var(--hospital-success);
+    border: 3px solid white;
+    border-radius: 50%;
+    animation: pulse-indicator 2s infinite;
+}
+
+@keyframes pulse-indicator {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+.system-message-content {
+    flex: 1;
+}
+
+.doctor-header {
+    font-family: var(--font-family-headings);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--hospital-primary);
+    margin-bottom: 0.5rem;
+}
+
+.symptoms-guide {
+    background: white;
+    padding: 1rem 1rem 1rem 2rem;
+    border-radius: var(--border-radius-sm);
+    margin: 0.5rem 0;
+    border-left: 4px solid var(--hospital-primary);
+}
+
+.symptoms-guide li {
+    color: var(--hospital-text);
+    margin-bottom: 0.3rem;
+    font-size: 0.95rem;
+}
+
+.info-note {
+    background: rgba(39, 174, 96, 0.1);
+    padding: 0.6rem 1rem;
+    border-radius: var(--border-radius-sm);
+    color: var(--hospital-success);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+/* ========================================
+   👨‍⚕️ PANEL DE ESPECIALISTAS
+   ======================================== */
+.specialists-panel .card-body {
+    background: var(--hospital-bg-alt);
+}
+
+.section-title {
+    font-family: var(--font-family-headings);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--hospital-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--hospital-secondary);
+}
+
+.active-doctor-card {
+    background: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    border: 2px solid var(--hospital-secondary);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 12px var(--hospital-shadow);
+    transition: all var(--transition-speed) ease;
+}
+
+.active-doctor-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--hospital-shadow);
+}
+
+.doctor-avatar-sm {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-secondary) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.doctor-info {
+    flex: 1;
+}
+
+.doctor-name {
+    font-weight: 700;
+    color: var(--hospital-primary);
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+}
+
+.doctor-specialty {
+    font-size: 0.85rem;
+    color: var(--hospital-text-muted);
+    margin-bottom: 0.3rem;
+}
+
+.doctor-status {
+    font-size: 0.8rem;
+    color: var(--hospital-success);
+    font-weight: 600;
+}
+
+/* Lista de especialistas evaluando */
+.specialists-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.specialist-card {
+    background: white;
+    padding: 1rem;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 0.75rem;
+    border-left: 4px solid var(--hospital-primary);
+    box-shadow: 0 2px 8px var(--hospital-shadow);
+    transition: all var(--transition-speed) ease;
+    animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.specialist-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px var(--hospital-shadow);
+}
+
+.specialist-card.high-relevance {
+    border-left-color: var(--hospital-success);
+    background: linear-gradient(90deg, var(--hospital-success-bg) 0%, white 100%);
+}
+
+.specialist-card.medium-relevance {
+    border-left-color: var(--hospital-warning);
+}
+
+.specialist-card.low-relevance {
+    border-left-color: var(--hospital-text-muted);
+    opacity: 0.7;
+}
+
+.specialist-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.specialist-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--hospital-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+
+.specialist-name {
+    font-weight: 700;
+    color: var(--hospital-primary);
+    font-size: 0.95rem;
+}
+
+.specialist-specialty {
+    font-size: 0.8rem;
+    color: var(--hospital-text-muted);
+}
+
+.relevance-bar-container {
+    margin-top: 0.5rem;
+}
+
+.relevance-label {
+    font-size: 0.75rem;
+    color: var(--hospital-text-muted);
+    margin-bottom: 0.25rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.relevance-percentage {
+    font-weight: 700;
+    color: var(--hospital-primary);
+}
+
+.relevance-bar {
+    height: 8px;
+    background: var(--hospital-accent);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.relevance-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--hospital-success) 0%, var(--hospital-primary) 100%);
+    border-radius: 4px;
+    transition: width 0.8s ease;
+}
+
+/* Pasos del proceso médico */
+.process-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.process-step {
+    padding: 0.75rem;
+    border-radius: var(--border-radius-sm);
+    background: white;
+    border-left: 3px solid var(--hospital-border);
+    color: var(--hospital-text-muted);
+    font-size: 0.9rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.process-step.completed {
+    border-left-color: var(--hospital-success);
+    background: var(--hospital-success-bg);
+    color: var(--hospital-success);
+    font-weight: 600;
+}
+
+.process-step.active {
+    border-left-color: var(--hospital-primary);
+    background: var(--hospital-info-bg);
+    color: var(--hospital-primary);
+    font-weight: 600;
+    box-shadow: 0 2px 8px var(--hospital-shadow);
+}
+
+.no-evaluations {
+    padding: 2rem 1rem;
+}
+
+.no-evaluations i {
+    color: var(--hospital-text-muted);
+    opacity: 0.5;
+}
+
+/* ========================================
+   📱 RESPONSIVE ADJUSTMENTS
+   ======================================== */
+@media (max-width: 768px) {
+    .hospital-name {
+        font-size: 1.1rem;
+    }
+    
+    .hospital-tagline {
+        font-size: 0.65rem;
+    }
+    
+    .welcome-title {
+        font-size: 1.5rem;
+    }
+    
+    .welcome-subtitle {
+        font-size: 0.95rem;
+    }
+    
+    .hospital-stats {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .medical-system-message {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .doctor-avatar {
+        margin: 0 auto;
+    }
+}
+
+/* ========================================
+   🎨 ANIMACIONES ADICIONALES
+   ======================================== */
+.fade-in {
+    animation: fadeIn 0.5s ease;
+}
+
+.slide-in-right {
+    animation: slideInRight 0.5s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.bounce-in {
+    animation: bounceIn 0.6s ease;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ========================================
+   📋 FORMULARIO DE ADMISIÓN
+   ======================================== */
+.admission-welcome-card {
+    background: linear-gradient(135deg, var(--hospital-primary) 0%, var(--hospital-secondary) 100%);
+    color: white;
+    padding: 2.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 8px 24px var(--hospital-shadow);
+}
+
+.admission-title {
+    font-family: var(--font-family-headings);
+    font-size: 2rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.5rem;
+}
+
+.admission-subtitle {
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.6;
+}
+
+.admission-icon {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    backdrop-filter: blur(10px);
+}
+
+.admission-form-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 16px var(--hospital-shadow);
+    border: 1px solid var(--hospital-border);
+}
+
+.form-section {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--hospital-accent);
+}
+
+.form-section:last-of-type {
+    border-bottom: none;
+}
+
+.section-title {
+    font-family: var(--font-family-headings);
+    color: var(--hospital-primary);
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid var(--hospital-secondary);
+}
+
+.form-label.required::after {
+    content: ' *';
+    color: var(--hospital-emergency);
+    font-weight: 700;
+}
+
+.form-control,
+.form-select {
+    border: 2px solid var(--hospital-border);
+    border-radius: var(--border-radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--hospital-primary);
+    box-shadow: 0 0 0 0.25rem rgba(46, 125, 137, 0.15);
+}
+
+/* Selector de urgencia */
+.urgency-selector {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.urgency-option {
+    border: 2px solid var(--hospital-border);
+    padding: 1.25rem;
+    border-radius: var(--border-radius);
+    transition: all var(--transition-speed) ease;
+    cursor: pointer;
+}
+
+.urgency-option:hover {
+    border-color: var(--hospital-primary);
+    background: var(--hospital-accent);
+}
+
+.urgency-option input[type="radio"]:checked ~ label {
+    color: var(--hospital-primary);
+}
+
+.urgency-option.urgent:has(input:checked) {
+    border-color: var(--hospital-emergency);
+    background: var(--hospital-emergency-bg);
+}
+
+.urgency-option.moderate:has(input:checked) {
+    border-color: var(--hospital-warning);
+    background: var(--hospital-warning-bg);
+}
+
+.urgency-option.routine:has(input:checked) {
+    border-color: var(--hospital-success);
+    background: var(--hospital-success-bg);
+}
+
+.urgency-option label {
+    cursor: pointer;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.urgency-option small {
+    color: var(--hospital-text-muted);
+    margin-top: 0.25rem;
+}
+
+/* Badges de seguridad */
+.security-badges .badge {
+    font-size: 0.85rem;
+    padding: 0.6rem 1rem;
+    font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .admission-title {
+        font-size: 1.5rem;
+    }
+    
+    .admission-form-card {
+        padding: 1.5rem;
+    }
+    
+    .urgency-selector {
+        gap: 0.75rem;
+    }
+}
