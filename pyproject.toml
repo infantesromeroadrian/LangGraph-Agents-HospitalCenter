@@ -1,7 +1,7 @@
 [project]
 name = "langgraph-medical-center"
 version = "1.0.0"
-description = "Sistema de agentes médicos especializados con orquestación paralela usando LangGraph, GPT-5.1 y PostgreSQL"
+description = "Sistema de agentes médicos especializados con orquestación paralela usando LangGraph, GPT-4o y PostgreSQL"
 authors = [
     {name = "Medical AI Team", email = "medical-ai@example.com"}
 ]
@@ -17,47 +17,48 @@ classifiers = [
 ]
 
 dependencies = [
-    # LangGraph and LangChain
-    "langgraph==0.2.45",
-    "langchain==0.3.10",
-    "langchain-openai==0.2.9",
-    "langchain-community==0.3.10",
+    # LangGraph and LangChain (v1.0 LTS)
+    "langgraph>=1.0,<2.0",
+    "langchain>=1.0,<2.0",
+    "langchain-core>=1.0,<2.0",
+    "langchain-openai>=0.3",
+    "langsmith>=0.3.0",
+
+    # LangGraph checkpointer for PostgreSQL (production persistence)
+    "langgraph-checkpoint-postgres>=2.0",
 
     # OpenAI
-    "openai==1.57.4",
+    "openai>=1.60",
 
     # Database - PostgreSQL
-    "psycopg2-binary==2.9.10",
-    "sqlalchemy==2.0.36",
-    "asyncpg==0.30.0",
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
+    "asyncpg>=0.30.0",
 
     # FastAPI Web Framework
-    "fastapi[standard]==0.115.5",
-    "uvicorn[standard]==0.32.1",
-    "python-multipart==0.0.18",
-    "websockets==14.1",
-    "jinja2==3.1.4",
+    "fastapi[standard]>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.18",
+    "websockets>=14.1",
+    "jinja2>=3.1",
 
     # Configuration Management
-    "pydantic==2.10.4",
-    "pydantic-settings==2.6.1",
-    "python-dotenv==1.0.1",
+    "pydantic>=2.10",
+    "pydantic-settings>=2.6",
+    "python-dotenv>=1.0",
 
     # Async Support
-    "aiohttp==3.11.10",
-
-    # Data Validation and Serialization
-    "marshmallow==3.23.2",
+    "aiohttp>=3.11",
 
     # Logging
-    "loguru==0.7.3",
+    "loguru>=0.7",
 
     # Utilities
-    "python-dateutil==2.9.0.post0",
-    "tenacity==9.0.0",
+    "python-dateutil>=2.9",
+    "tenacity>=9.0",
 
-    # Additional dependencies for production
-    "httpx==0.28.1",  # For testing async requests
+    # HTTP Client
+    "httpx>=0.28",
 ]
 
 [project.optional-dependencies]
@@ -81,7 +82,7 @@ dev = [
 ]
 
 [project.scripts]
-medical-server = "src.web.app:main"
+medical-server = "main:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -172,8 +173,6 @@ disallow_incomplete_defs = false
 
 [[tool.mypy.overrides]]
 module = [
-    "eventlet.*",
-    "flask_socketio.*",
     "marshmallow.*",
     "loguru.*",
 ]

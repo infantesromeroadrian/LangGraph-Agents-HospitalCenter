@@ -11,7 +11,7 @@ from src.graph.nodes import (
     specialist_evaluation_node,
     triage_node,
 )
-from src.graph.state import MedicalGraphState
+from src.graph.state import create_initial_state, state_to_dict
 from src.models.evaluation import SpecialistEvaluation
 from src.models.message import Message
 
@@ -21,7 +21,7 @@ def sample_state():
     """Estado del grafo de prueba."""
     session_id = uuid4()
 
-    return MedicalGraphState(
+    return create_initial_state(
         session_id=session_id,
         thread_id=f"thread_{session_id}",
         messages=[Message(role="user", content="Tengo dolor en el pecho", session_id=session_id)],
@@ -58,18 +58,18 @@ class TestMedicalGraphState:
         session_id = uuid4()
         thread_id = f"thread_{session_id}"
 
-        state = MedicalGraphState(session_id=session_id, thread_id=thread_id)
+        state = create_initial_state(session_id=session_id, thread_id=thread_id)
 
-        assert state.session_id == session_id
-        assert state.thread_id == thread_id
-        assert state.messages == []
-        assert state.specialist_evaluations == []
-        assert state.triage_completed is False
-        assert state.selected_specialist is None
+        assert state["session_id"] == session_id
+        assert state["thread_id"] == thread_id
+        assert state["messages"] == []
+        assert state["specialist_evaluations"] == []
+        assert state["triage_completed"] is False
+        assert state["selected_specialist"] is None
 
     def test_state_to_dict(self, sample_state):
         """Test conversión de estado a diccionario."""
-        state_dict = sample_state.to_dict()
+        state_dict = state_to_dict(sample_state)
 
         assert "session_id" in state_dict
         assert "thread_id" in state_dict
@@ -111,11 +111,22 @@ class TestTriageNode:
     @pytest.mark.asyncio
     async def test_triage_node_no_messages(self):
         """Test nodo de triaje sin mensajes."""
-        empty_state = MedicalGraphState(session_id=uuid4(), thread_id="test_thread")
+        empty_state = create_initial_state(session_id=uuid4(), thread_id="test_thread")
 
         updates = await triage_node(empty_state)
 
         assert updates.get("triage_completed") is False
+
+    @pytest.mark.asyncio
+    async def test_triage_node_bypasses_when_specialist_active(self, sample_state):
+        """Test que no repite triaje en conversación ya encaminada."""
+        sample_state["triage_completed"] = True
+        sample_state["selected_specialist"] = "ginecologia"
+        sample_state["active_specialist"] = "ginecologia"
+
+        updates = await triage_node(sample_state)
+
+        assert updates == {"needs_parallel_evaluation": False}
 
 
 class TestFanOutNode:
@@ -126,9 +137,7 @@ class TestFanOutNode:
         sends = fan_out_to_specialists(sample_state)
 
         assert isinstance(sends, list)
-        assert (
-            len(sends) == 8
-        )  # 8 especialistas (medicina_general, cardiologia, neurologia, pediatria, dermatologia, traumatologia, psiquiatria, oncologia)
+        assert len(sends) == 9  # 9 especialistas, incluyendo ginecología
 
         # Verificar que son Send objects con estructura correcta
         for send in sends:
@@ -185,7 +194,7 @@ class TestConsensusNode:
     ):
         """Test ejecución exitosa del consenso."""
         # Agregar evaluaciones al estado
-        sample_state.specialist_evaluations = sample_evaluations
+        sample_state["specialist_evaluations"] = sample_evaluations
 
         # Mock del agente de consenso
         mock_agent = AsyncMock()
@@ -222,7 +231,7 @@ class TestSpecialistChatNode:
     async def test_specialist_chat_success(self, mock_factory, sample_state):
         """Test chat exitoso con especialista."""
         # Configurar estado con especialista activo
-        sample_state.active_specialist = "cardiologia"
+        sample_state["active_specialist"] = "cardiologia"
 
         # Mock del agente
         mock_agent = AsyncMock()
@@ -241,7 +250,7 @@ class TestSpecialistChatNode:
     async def test_specialist_chat_no_active(self, sample_state):
         """Test chat sin especialista activo."""
         # No establecer active_specialist
-        sample_state.active_specialist = None
+        sample_state["active_specialist"] = None
 
         updates = await specialist_chat_node(sample_state)
 

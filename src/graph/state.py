@@ -1,75 +1,89 @@
 """Definición del estado del grafo LangGraph."""
 
-from dataclasses import dataclass, field
 from operator import add
-from typing import Annotated, Optional
+from typing import Annotated, Any, TypedDict
 from uuid import UUID
 
 from src.models.evaluation import SpecialistEvaluation
 from src.models.message import Message
 
 
-@dataclass
-class MedicalGraphState:
-    """
-    Estado del grafo de agentes médicos.
+class MedicalGraphState(TypedDict):
+    """Estado del grafo de agentes médicos compatible con LangGraph 1.0."""
 
-    Este estado se mantiene a lo largo de toda la conversación
-    y se persiste en PostgreSQL mediante el checkpointer.
-    """
-
-    # Identificadores
     session_id: UUID
     thread_id: str
+    messages: Annotated[list[Message], add]
+    specialist_evaluations: Annotated[list[SpecialistEvaluation], add]
+    triage_completed: bool
+    triage_data: dict[str, Any]
+    consensus_decision: dict[str, Any] | None
+    selected_specialist: str | None
+    active_specialist: str | None
+    patient_info: dict[str, Any]
+    patient_context: str | None
+    needs_parallel_evaluation: bool
+    evaluation_round: int
+    conversation_active: bool
+    metadata: dict[str, Any]
 
-    # Historial de mensajes (se acumula con operator add)
-    messages: Annotated[list[Message], add] = field(default_factory=list)
 
-    # Evaluaciones de especialistas (se acumula con operator add)
-    specialist_evaluations: Annotated[list[SpecialistEvaluation], add] = field(default_factory=list)
+def create_initial_state(
+    session_id: UUID,
+    thread_id: str,
+    *,
+    messages: list[Message] | None = None,
+    specialist_evaluations: list[SpecialistEvaluation] | None = None,
+    triage_completed: bool = False,
+    triage_data: dict[str, Any] | None = None,
+    consensus_decision: dict[str, Any] | None = None,
+    selected_specialist: str | None = None,
+    active_specialist: str | None = None,
+    patient_info: dict[str, Any] | None = None,
+    patient_context: str | None = None,
+    needs_parallel_evaluation: bool = True,
+    evaluation_round: int = 0,
+    conversation_active: bool = True,
+    metadata: dict[str, Any] | None = None,
+) -> MedicalGraphState:
+    """Crea un estado completo con defaults seguros para LangGraph."""
+    return {
+        "session_id": session_id,
+        "thread_id": thread_id,
+        "messages": list(messages or []),
+        "specialist_evaluations": list(specialist_evaluations or []),
+        "triage_completed": triage_completed,
+        "triage_data": dict(triage_data or {}),
+        "consensus_decision": consensus_decision,
+        "selected_specialist": selected_specialist,
+        "active_specialist": active_specialist,
+        "patient_info": dict(patient_info or {}),
+        "patient_context": patient_context,
+        "needs_parallel_evaluation": needs_parallel_evaluation,
+        "evaluation_round": evaluation_round,
+        "conversation_active": conversation_active,
+        "metadata": dict(metadata or {}),
+    }
 
-    # Estado de triaje
-    triage_completed: bool = False
-    triage_data: dict = field(default_factory=dict)
 
-    # Decisión de consenso
-    consensus_decision: Optional[dict] = None
-    selected_specialist: Optional[str] = None
-
-    # Especialista activo actual
-    active_specialist: Optional[str] = None
-
-    # Metadata del paciente
-    patient_info: dict = field(default_factory=dict)
-
-    # ✅ NUEVO: Contexto del paciente formateado para LLM
-    # Este string se genera desde patient_info y se inyecta en el primer mensaje
-    patient_context: Optional[str] = None
-
-    # Control de flujo
-    needs_parallel_evaluation: bool = True
-    evaluation_round: int = 0
-    conversation_active: bool = True
-
-    # Metadata adicional
-    metadata: dict = field(default_factory=dict)
-
-    def to_dict(self) -> dict:
-        """Convierte el estado a diccionario."""
-        return {
-            "session_id": str(self.session_id),
-            "thread_id": self.thread_id,
-            "messages": [msg.to_dict() for msg in self.messages],
-            "specialist_evaluations": [eval.to_dict() for eval in self.specialist_evaluations],
-            "triage_completed": self.triage_completed,
-            "triage_data": self.triage_data,
-            "consensus_decision": self.consensus_decision,
-            "selected_specialist": self.selected_specialist,
-            "active_specialist": self.active_specialist,
-            "patient_info": self.patient_info,
-            "patient_context": self.patient_context,
-            "needs_parallel_evaluation": self.needs_parallel_evaluation,
-            "evaluation_round": self.evaluation_round,
-            "conversation_active": self.conversation_active,
-            "metadata": self.metadata,
-        }
+def state_to_dict(state: MedicalGraphState) -> dict[str, Any]:
+    """Convierte el estado a un diccionario serializable."""
+    return {
+        "session_id": str(state["session_id"]),
+        "thread_id": state["thread_id"],
+        "messages": [msg.to_dict() for msg in state["messages"]],
+        "specialist_evaluations": [
+            evaluation.to_dict() for evaluation in state["specialist_evaluations"]
+        ],
+        "triage_completed": state["triage_completed"],
+        "triage_data": state["triage_data"],
+        "consensus_decision": state["consensus_decision"],
+        "selected_specialist": state["selected_specialist"],
+        "active_specialist": state["active_specialist"],
+        "patient_info": state["patient_info"],
+        "patient_context": state["patient_context"],
+        "needs_parallel_evaluation": state["needs_parallel_evaluation"],
+        "evaluation_round": state["evaluation_round"],
+        "conversation_active": state["conversation_active"],
+        "metadata": state["metadata"],
+    }

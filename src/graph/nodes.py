@@ -25,11 +25,21 @@ async def triage_node(state: MedicalGraphState) -> dict:
     Returns:
         Actualizaciones al estado
     """
+    session_id = state["session_id"]
+    messages = state["messages"]
+    patient_context = state["patient_context"]
+
     try:
-        logger.info(f"ℹ️ [Triaje] Iniciando análisis - Sesión {state.session_id}")
+        if state.get("triage_completed") and state.get("active_specialist"):
+            logger.info(
+                f"ℹ️ [Triaje] Reutilizando especialista activo: {state['active_specialist']}"
+            )
+            return {"needs_parallel_evaluation": False}
+
+        logger.info(f"ℹ️ [Triaje] Iniciando análisis - Sesión {session_id}")
 
         # Obtener el último mensaje del usuario
-        user_messages = [msg for msg in state.messages if msg.role == "user"]
+        user_messages = [msg for msg in messages if msg.role == "user"]
 
         if not user_messages:
             logger.warning("⚠️ [Triaje] No hay mensajes del usuario")
@@ -46,15 +56,15 @@ async def triage_node(state: MedicalGraphState) -> dict:
         # Realizar análisis de triaje
         triage_result = await triage_agent.evaluate(
             message=last_user_message,
-            session_id=state.session_id,
-            patient_context=state.patient_context,
+            session_id=session_id,
+            patient_context=patient_context,
         )
 
         # Crear mensaje de respuesta del triaje
         triage_message = Message(
             role="assistant",
             content=triage_result["summary"],
-            session_id=state.session_id,
+            session_id=session_id,
             specialist_type="triaje",
             metadata=triage_result,
         )
@@ -75,7 +85,7 @@ async def triage_node(state: MedicalGraphState) -> dict:
         error_message = Message(
             role="assistant",
             content="Lo siento, hubo un error en el análisis inicial. Por favor, inténtalo de nuevo.",
-            session_id=state.session_id,
+            session_id=session_id,
             specialist_type="triaje",
             metadata={"error": str(e)},
         )
@@ -131,6 +141,10 @@ async def specialist_evaluation_node(data: dict) -> dict:
     specialty = data["specialty"]
     state: MedicalGraphState = data["state"]
 
+    session_id = state["session_id"]
+    messages = state["messages"]
+    patient_context = state["patient_context"]
+
     try:
         logger.info(f"ℹ️ [{specialty}] Evaluando caso")
 
@@ -142,7 +156,7 @@ async def specialist_evaluation_node(data: dict) -> dict:
             return {}
 
         # Obtener último mensaje del usuario
-        user_messages = [msg for msg in state.messages if msg.role == "user"]
+        user_messages = [msg for msg in messages if msg.role == "user"]
 
         if not user_messages:
             return {}
@@ -153,8 +167,8 @@ async def specialist_evaluation_node(data: dict) -> dict:
         # Evaluar relevancia
         evaluation = await agent.evaluate(
             message=last_user_message,
-            session_id=state.session_id,
-            patient_context=state.patient_context,
+            session_id=session_id,
+            patient_context=patient_context,
         )
 
         logger.info(
@@ -181,14 +195,17 @@ async def consensus_node(state: MedicalGraphState) -> dict:
     Returns:
         Decisión de consenso
     """
+    session_id = state["session_id"]
+    evaluations = state["specialist_evaluations"]
+
     try:
-        logger.info(f"ℹ️ [Consenso] Analizando {len(state.specialist_evaluations)} evaluaciones")
+        logger.info(f"ℹ️ [Consenso] Analizando {len(evaluations)} evaluaciones")
 
         # Crear agente de consenso
         consensus_agent = ConsensusAgent()
 
         # Seleccionar mejor especialista
-        decision = await consensus_agent.select_specialist(evaluations=state.specialist_evaluations)
+        decision = await consensus_agent.select_specialist(evaluations=evaluations)
 
         # Crear mensaje de respuesta
         selected = decision["selected_specialist"]
@@ -203,7 +220,7 @@ async def consensus_node(state: MedicalGraphState) -> dict:
                 f"{reasoning}\n\n"
                 f"Confianza: {confidence * 100:.0f}%"
             ),
-            session_id=state.session_id,
+            session_id=session_id,
             specialist_type="consenso",
             metadata=decision,
         )
@@ -223,7 +240,7 @@ async def consensus_node(state: MedicalGraphState) -> dict:
         error_message = Message(
             role="assistant",
             content="Lo siento, hubo un error al procesar las evaluaciones.",
-            session_id=state.session_id,
+            session_id=session_id,
             specialist_type="consenso",
             metadata={"error": str(e)},
         )
@@ -242,9 +259,12 @@ async def specialist_chat_node(state: MedicalGraphState) -> dict:
     Returns:
         Respuesta del especialista
     """
-    try:
-        specialty = state.active_specialist
+    specialty = state["active_specialist"]
+    session_id = state["session_id"]
+    messages = state["messages"]
+    patient_context = state["patient_context"]
 
+    try:
         if not specialty:
             logger.warning("⚠️ [Chat] No hay especialista activo")
             return {}
@@ -258,7 +278,7 @@ async def specialist_chat_node(state: MedicalGraphState) -> dict:
             return {}
 
         # Obtener último mensaje del usuario
-        user_messages = [msg for msg in state.messages if msg.role == "user"]
+        user_messages = [msg for msg in messages if msg.role == "user"]
 
         if not user_messages:
             return {}
@@ -269,16 +289,16 @@ async def specialist_chat_node(state: MedicalGraphState) -> dict:
         # Generar respuesta conversacional
         response = await agent.chat(
             message=last_user_message.content,  # Pasar contenido como string
-            session_id=state.session_id,
-            history=state.messages,
-            patient_context=state.patient_context,  # ✅ CRÍTICO: Contexto del paciente
+            session_id=session_id,
+            history=messages,
+            patient_context=patient_context,  # ✅ CRÍTICO: Contexto del paciente
         )
 
         # Crear mensaje de respuesta
         response_message = Message(
             role="assistant",
             content=response,
-            session_id=state.session_id,
+            session_id=session_id,
             specialist_type=specialty,
         )
 
@@ -291,7 +311,7 @@ async def specialist_chat_node(state: MedicalGraphState) -> dict:
         error_message = Message(
             role="assistant",
             content="Lo siento, hubo un error al generar la respuesta.",
-            session_id=state.session_id,
-            specialist_type=state.active_specialist or "sistema",
+            session_id=session_id,
+            specialist_type=specialty or "sistema",
         )
         return {"messages": [error_message]}

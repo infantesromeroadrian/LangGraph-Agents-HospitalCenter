@@ -1,11 +1,14 @@
 """Construcción del grafo médico con LangGraph."""
 
+import inspect
 import logging
-from typing import Literal
+from contextlib import AbstractAsyncContextManager
+from typing import Any, Literal
 
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
 
+from src.config.settings import settings
 from src.graph.nodes import (
     consensus_node,
     specialist_chat_node,
@@ -35,7 +38,7 @@ def route_after_triage(state: MedicalGraphState):
     from src.agents.agent_factory import AgentFactory
 
     # Si necesita evaluación paralela y no hay especialista seleccionado
-    if state.needs_parallel_evaluation and not state.selected_specialist:
+    if state["needs_parallel_evaluation"] and not state["selected_specialist"]:
         logger.info("ℹ️ [Router] -> Evaluación paralela (fan-out)")
 
         # Crear Send para cada especialista
@@ -49,11 +52,11 @@ def route_after_triage(state: MedicalGraphState):
         return sends
     else:
         # Ir directo al chat con el especialista activo
-        logger.info(f"ℹ️ [Router] -> Chat directo con {state.active_specialist}")
+        logger.info(f"ℹ️ [Router] -> Chat directo con {state['active_specialist']}")
         return "specialist_chat"
 
 
-def should_continue_conversation(state: MedicalGraphState) -> Literal["end"]:
+def should_continue_conversation(_state: MedicalGraphState) -> Literal["end"]:
     """
     Decide si la conversación debe continuar.
 
@@ -72,7 +75,7 @@ def should_continue_conversation(state: MedicalGraphState) -> Literal["end"]:
     return "end"
 
 
-async def create_medical_graph() -> StateGraph:
+async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
     """
     Crea y configura el grafo de agentes médicos.
 
@@ -108,9 +111,6 @@ async def create_medical_graph() -> StateGraph:
         # This prevents infinite recursion loops
         workflow.add_edge("specialist_chat", END)
 
-        # Crear checkpointer en memoria (temporal)
-        checkpointer = create_memory_checkpointer()
-
         # Compilar el grafo con checkpointer
         graph = workflow.compile(checkpointer=checkpointer)
 
@@ -123,30 +123,32 @@ async def create_medical_graph() -> StateGraph:
         raise
 
 
-def create_memory_checkpointer() -> MemorySaver:
+async def create_postgres_checkpointer() -> tuple[
+    AsyncPostgresSaver, AbstractAsyncContextManager[AsyncPostgresSaver]
+]:
     """
-    Crea el checkpointer en memoria para persistencia temporal.
+    Crea el checkpointer PostgreSQL para persistencia durable.
 
     Returns:
-        MemorySaver configurado
-
-    Note:
-        Usando MemorySaver temporalmente. Para producción con PostgreSQL,
-        instalar: pip install langgraph-checkpoint-postgres
-        y usar AsyncPostgresSaver
+        Checkpointer configurado y su context manager asociado
     """
     try:
-        logger.info("ℹ️ [Checkpointer] Inicializando Memory saver (temporal)")
-        logger.warning(
-            "⚠️ [Checkpointer] Usando persistencia en memoria. Los checkpoints se perderán al reiniciar."
-        )
+        checkpoint_db_url = settings.CHECKPOINT_DB_URL or settings.DATABASE_URL
+        if not checkpoint_db_url:
+            raise ValueError("CHECKPOINT_DB_URL no está configurada")
 
-        # Crear checkpointer en memoria
-        checkpointer = MemorySaver()
+        logger.info("ℹ️ [Checkpointer] Inicializando AsyncPostgresSaver")
 
-        logger.info("✅ [Checkpointer] Memory saver inicializado")
+        context_manager = AsyncPostgresSaver.from_conn_string(checkpoint_db_url)
+        checkpointer = await context_manager.__aenter__()
 
-        return checkpointer
+        setup_result = checkpointer.setup()
+        if inspect.isawaitable(setup_result):
+            await setup_result
+
+        logger.info("✅ [Checkpointer] AsyncPostgresSaver inicializado")
+
+        return checkpointer, context_manager
 
     except Exception as e:
         logger.error(f"❌ [Checkpointer] Error: {e!s}")
@@ -158,14 +160,34 @@ class MedicalGraphManager:
 
     def __init__(self):
         """Inicializa el gestor."""
-        self.graph = None
+        self.graph: Any = None
+        self._checkpointer: AsyncPostgresSaver | None = None
+        self._checkpointer_context: AbstractAsyncContextManager[AsyncPostgresSaver] | None = None
         logger.info("ℹ️ [GraphManager] Inicializado")
 
     async def initialize(self):
         """Inicializa el grafo."""
         if self.graph is None:
-            self.graph = await create_medical_graph()
-            logger.info("✅ [GraphManager] Grafo inicializado")
+            try:
+                (
+                    self._checkpointer,
+                    self._checkpointer_context,
+                ) = await create_postgres_checkpointer()
+                self.graph = await create_medical_graph(self._checkpointer)
+                logger.info("✅ [GraphManager] Grafo inicializado")
+            except Exception:
+                await self.close()
+                raise
+
+    async def close(self):
+        """Libera los recursos del grafo y del checkpointer."""
+        self.graph = None
+        self._checkpointer = None
+
+        if self._checkpointer_context is not None:
+            await self._checkpointer_context.__aexit__(None, None, None)
+            self._checkpointer_context = None
+            logger.info("✅ [GraphManager] Checkpointer cerrado")
 
     async def get_graph(self):
         """
@@ -178,7 +200,7 @@ class MedicalGraphManager:
             await self.initialize()
         return self.graph
 
-    async def invoke(self, state: MedicalGraphState, config: dict) -> MedicalGraphState:
+    async def invoke(self, state: MedicalGraphState, config: dict[str, Any]) -> MedicalGraphState:
         """
         Ejecuta el grafo con un estado.
 
@@ -190,10 +212,11 @@ class MedicalGraphManager:
             Estado final
         """
         graph = await self.get_graph()
+        assert graph is not None
         result = await graph.ainvoke(state, config)
         return result
 
-    async def stream(self, state: MedicalGraphState, config: dict):
+    async def stream(self, state: MedicalGraphState, config: dict[str, Any]):
         """
         Ejecuta el grafo en modo streaming.
 
@@ -205,6 +228,7 @@ class MedicalGraphManager:
             Eventos del grafo
         """
         graph = await self.get_graph()
+        assert graph is not None
         async for event in graph.astream(state, config):
             yield event
 

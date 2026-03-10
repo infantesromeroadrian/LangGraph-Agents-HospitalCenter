@@ -1,4 +1,4 @@
-"""Servicio para interactuar con LLM (GPT-5.1)."""
+"""Servicio para interactuar con el modelo LLM configurado."""
 
 import json
 import logging
@@ -14,14 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 class LLMService:
-    """Servicio para interactuar con GPT-5.1 de OpenAI."""
+    """Servicio para interactuar con modelos de OpenAI."""
 
     def __init__(self):
         """Inicializa el servicio LLM."""
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, timeout=settings.OPENAI_TIMEOUT)
+        self.base_url = settings.OPENAI_BASE_URL.rstrip("/")
+        self.client = AsyncOpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            base_url=self.base_url,
+            timeout=settings.OPENAI_TIMEOUT,
+        )
         self.model = settings.OPENAI_MODEL
         self.temperature = settings.OPENAI_TEMPERATURE
         self.max_tokens = settings.OPENAI_MAX_TOKENS
+        self.is_groq_compatible = "api.groq.com" in self.base_url
 
         logger.info(f"ℹ️ LLMService inicializado con modelo: {self.model}")
 
@@ -54,9 +60,13 @@ class LLMService:
                 "model": self.model,
                 "messages": messages,
                 "temperature": temperature or self.temperature,
-                "max_completion_tokens": max_tokens
-                or self.max_tokens,  # GPT-4+ usa max_completion_tokens
             }
+
+            token_limit = max_tokens or self.max_tokens
+            if self.is_groq_compatible:
+                params["max_tokens"] = token_limit
+            else:
+                params["max_completion_tokens"] = token_limit
 
             if response_format:
                 params["response_format"] = response_format
@@ -89,6 +99,7 @@ class LLMService:
         Returns:
             Respuesta parseada como diccionario
         """
+        response = ""
         try:
             response = await self.complete(
                 messages=messages, temperature=temperature, response_format={"type": "json_object"}
@@ -99,7 +110,7 @@ class LLMService:
         except json.JSONDecodeError as e:
             logger.error(f"❌ Error parseando JSON: {e!s}")
             logger.debug(f"🐞 Respuesta recibida: {response}")
-            raise ValueError(f"LLM no retornó JSON válido: {e!s}")
+            raise ValueError(f"LLM no retornó JSON válido: {e!s}") from e
 
     async def stream_complete(
         self, messages: list[dict], temperature: Optional[float] = None

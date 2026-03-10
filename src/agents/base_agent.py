@@ -137,8 +137,21 @@ class BaseMedicalAgent(ABC):
             logger.debug(f"🐞 {self.specialty}: Generando respuesta")
 
             # Construir mensajes para chat
-            session_context = {"session_id": str(session_id)}
-            messages = [{"role": "system", "content": self._get_chat_prompt(session_context)}]
+            has_previous_specialist_turn = any(
+                msg.role == "assistant" and msg.specialist_type == self.specialty for msg in history
+            )
+            session_context = {
+                "session_id": str(session_id),
+                "specialty": self.specialty,
+                "consultation_stage": (
+                    "follow_up" if has_previous_specialist_turn else "initial_interview"
+                ),
+                "history_messages": len(history),
+            }
+            messages = [
+                {"role": "system", "content": self.system_prompt},
+                {"role": "system", "content": self._get_chat_prompt(session_context)},
+            ]
 
             # ✅ NUEVO: Inyectar contexto del paciente ANTES del historial
             if patient_context:
@@ -195,9 +208,7 @@ class BaseMedicalAgent(ABC):
         return SPECIALIST_CHAT_PROMPT.format(
             specialty=self.specialty,
             session_context=str(session_context),
-            conversation_history="{conversation_history}",
-            patient_message="{patient_message}",
-        ).split("{conversation_history}")[0]
+        )
 
     def get_specialty_info(self) -> dict:
         """

@@ -1,57 +1,47 @@
-# LangGraph and LangChain
-langgraph==0.2.45
-langchain==0.3.10
-langchain-openai==0.2.9
-langchain-community==0.3.10
+# ============================================================================
+# LangGraph Medical Center - Dependencies
+# NOTE: Canonical source is pyproject.toml. This file is for reference/Docker.
+# ============================================================================
+
+# LangGraph and LangChain (v1.0 LTS)
+langgraph>=1.0,<2.0
+langchain>=1.0,<2.0
+langchain-core>=1.0,<2.0
+langchain-openai>=0.3
+langsmith>=0.3.0
+
+# LangGraph checkpointer for PostgreSQL
+langgraph-checkpoint-postgres>=2.0
 
 # OpenAI
-openai==1.57.4
+openai>=1.60
 
 # Database - PostgreSQL
-psycopg2-binary==2.9.10
-sqlalchemy==2.0.36
-asyncpg==0.30.0
+psycopg[binary]>=3.2
+psycopg-pool>=3.2
+asyncpg>=0.30.0
 
-# Flask Web Framework
-Flask[async]==3.1.0
-Flask-CORS==5.0.0
-Flask-SocketIO==5.4.1
-python-socketio==5.12.0
+# FastAPI Web Framework
+fastapi[standard]>=0.115
+uvicorn[standard]>=0.32
+python-multipart>=0.0.18
+websockets>=14.1
+jinja2>=3.1
 
 # Configuration Management
-pydantic==2.10.4
-pydantic-settings==2.6.1
-python-dotenv==1.0.1
+pydantic>=2.10
+pydantic-settings>=2.6
+python-dotenv>=1.0
 
 # Async Support
-aiohttp==3.11.10
-asyncio==3.4.3
-
-# Data Validation and Serialization
-marshmallow==3.23.2
+aiohttp>=3.11
 
 # Logging
-loguru==0.7.3
-
-# Testing
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
-pytest-mock==3.14.0
-
-# Type Checking
-mypy==1.13.0
-types-requests==2.32.0.20241016
-
-# Code Quality
-black==24.10.0
-flake8==7.1.1
-ruff==0.8.4
+loguru>=0.7
 
 # Utilities
-python-dateutil==2.9.0.post0
-tenacity==9.0.0
+python-dateutil>=2.9
+tenacity>=9.0
 
-# Production Server
-gunicorn==23.0.0
-eventlet==0.37.0  # Para SocketIO async con asyncpg
+# HTTP Client
+httpx>=0.28

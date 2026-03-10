@@ -1,7 +1,7 @@
 """Modelo de mensaje para conversaciones."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal, Optional
 from uuid import UUID, uuid4
 
@@ -15,7 +15,7 @@ class Message:
     message_id: UUID = field(default_factory=uuid4)
     session_id: Optional[UUID] = None
     specialist_type: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     metadata: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -41,7 +41,7 @@ class Message:
             specialist_type=data.get("specialist_type"),
             created_at=datetime.fromisoformat(data["created_at"])
             if "created_at" in data
-            else datetime.utcnow(),
+            else datetime.now(UTC),
             metadata=data.get("metadata", {}),
         )
 

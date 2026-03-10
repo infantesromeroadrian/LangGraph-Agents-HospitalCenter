@@ -57,6 +57,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
 
     # Shutdown
     logger.info("👋 Cerrando Medical Center API")
+    await medical_graph_manager.close()
     await db_service.disconnect()
     logger.info("✅ Servicios cerrados correctamente")
 
@@ -64,7 +65,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
 # Crear aplicación FastAPI
 app = FastAPI(
     title="LangGraph Medical Center API",
-    description="Sistema de agentes médicos especializados con LangGraph y GPT-5.1",
+    description="Sistema de agentes médicos especializados con LangGraph y GPT-4o",
     version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs",  # Swagger UI

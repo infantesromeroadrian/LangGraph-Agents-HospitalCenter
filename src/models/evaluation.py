@@ -1,7 +1,7 @@
 """Modelo de evaluación de especialistas."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -15,7 +15,7 @@ class SpecialistEvaluation:
     reasoning: str
     evaluation_id: UUID = field(default_factory=uuid4)
     session_id: Optional[UUID] = None
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     evaluation_data: dict = field(default_factory=dict)
     confidence: float = 0.0
     key_symptoms: list[str] = field(default_factory=list)
@@ -56,7 +56,7 @@ class SpecialistEvaluation:
             session_id=UUID(data["session_id"]) if data.get("session_id") else None,
             created_at=datetime.fromisoformat(data["created_at"])
             if "created_at" in data
-            else datetime.utcnow(),
+            else datetime.now(UTC),
             evaluation_data=data.get("evaluation_data", {}),
             confidence=data.get("confidence", 0.0),
             key_symptoms=data.get("key_symptoms", []),

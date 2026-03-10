@@ -3,6 +3,7 @@
 from src.agents.specialists.cardiology import CardiologyAgent
 from src.agents.specialists.dermatology import DermatologyAgent
 from src.agents.specialists.general_medicine import GeneralMedicineAgent
+from src.agents.specialists.gynecology import GynecologyAgent
 from src.agents.specialists.neurology import NeurologyAgent
 from src.agents.specialists.oncology import OncologyAgent
 from src.agents.specialists.orthopedics import OrthopedicsAgent
@@ -13,6 +14,7 @@ __all__ = [
     "CardiologyAgent",
     "DermatologyAgent",
     "GeneralMedicineAgent",
+    "GynecologyAgent",
     "NeurologyAgent",
     "OncologyAgent",
     "OrthopedicsAgent",

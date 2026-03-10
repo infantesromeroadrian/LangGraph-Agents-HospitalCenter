@@ -147,7 +147,7 @@ IMPORTANTE:
             if "reasoning" not in analysis:
                 analysis["reasoning"] = "Análisis incompleto"
 
-    def _get_default_analysis(self, query: str) -> dict:
+    def _get_default_analysis(self, _query: str) -> dict:
         """
         Obtiene un análisis por defecto en caso de error.
 

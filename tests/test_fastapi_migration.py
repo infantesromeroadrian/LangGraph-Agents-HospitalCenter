@@ -79,7 +79,6 @@ class TestFastAPIMigration:
         # El endpoint existe pero requiere session_id válido
         # Solo verificamos que está definido en el schema
         response = client.get("/openapi.json")
-        schema = response.json()
         # WebSockets no aparecen en OpenAPI de la misma forma que HTTP endpoints
         # Este test verifica que no hay error 404
         assert response.status_code == 200

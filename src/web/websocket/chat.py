@@ -12,7 +12,7 @@ from uuid import UUID
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from src.graph.medical_graph import medical_graph_manager
-from src.graph.state import MedicalGraphState
+from src.graph.state import create_initial_state
 from src.memory.conversation_memory import conversation_memory
 from src.models.message import Message
 from src.services.database_service import db_service
@@ -247,20 +247,35 @@ async def process_user_message(session_id: str, message_content: str, manager: C
         # ✅ NUEVO: CARGAR CONTEXTO DEL PACIENTE (si existe)
         patient_info, patient_context = await load_patient_context_for_session(session_id)
 
-        # Crear estado inicial del grafo
-        state = MedicalGraphState(
-            session_id=UUID(session_id),
-            thread_id=f"thread_{session_id}",
-            messages=[user_message],
-            patient_info=patient_info,  # ✅ Datos básicos del paciente
-            patient_context=patient_context,  # ✅ String formateado para LLM
-        )
-
         # Configuración para LangGraph
         config = {
-            "configurable": {"thread_id": state.thread_id},
+            "configurable": {"thread_id": f"thread_{session_id}"},
             "recursion_limit": 50,
         }
+
+        graph = await medical_graph_manager.get_graph()
+        snapshot = await graph.aget_state(config)
+        existing_state = snapshot.values if snapshot and snapshot.values else {}
+
+        if existing_state:
+            logger.info(
+                "ℹ️ [WebSocket] Continuando conversación existente con especialista: %s",
+                existing_state.get("active_specialist"),
+            )
+            state = {
+                "messages": [user_message],
+                "patient_info": patient_info,
+                "patient_context": patient_context,
+            }
+        else:
+            logger.info("ℹ️ [WebSocket] Iniciando conversación nueva con triaje completo")
+            state = create_initial_state(
+                session_id=UUID(session_id),
+                thread_id=f"thread_{session_id}",
+                messages=[user_message],
+                patient_info=patient_info,
+                patient_context=patient_context,
+            )
 
         # Indicar que está procesando
         await manager.send_json(session_id, {"type": "thinking", "agent_name": "Triaje"})

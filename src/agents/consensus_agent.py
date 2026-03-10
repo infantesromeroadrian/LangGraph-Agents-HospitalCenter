@@ -20,7 +20,9 @@ class ConsensusAgent:
         Args:
             llm_service: Servicio LLM opcional
         """
-        self.llm = llm_service or llm_service
+        from src.services.llm_service import llm_service as global_llm_service
+
+        self.llm = llm_service if llm_service is not None else global_llm_service
         logger.info("ℹ️ ConsensusAgent inicializado")
 
     async def select_specialist(
@@ -66,7 +68,7 @@ class ConsensusAgent:
             return self._get_default_decision()
 
     async def _llm_consensus(
-        self, evaluations: list[SpecialistEvaluation], voting_weight: str
+        self, evaluations: list[SpecialistEvaluation], _voting_weight: str
     ) -> dict:
         """
         Usa LLM para decisión de consenso refinada.

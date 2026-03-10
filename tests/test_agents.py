@@ -8,6 +8,7 @@ from src.agents.agent_factory import AgentFactory
 from src.agents.base_agent import BaseMedicalAgent
 from src.agents.consensus_agent import ConsensusAgent
 from src.agents.specialists.cardiology import CardiologyAgent
+from src.agents.specialists.gynecology import GynecologyAgent
 from src.agents.triage_agent import TriageAgent
 from src.models.evaluation import SpecialistEvaluation
 from src.models.message import Message
@@ -242,6 +243,14 @@ class TestAgentFactory:
         assert isinstance(agent, BaseMedicalAgent)
         assert agent.specialty == "cardiologia"
 
+    def test_create_agent_gynecology(self):
+        """Test creación de agente de ginecología."""
+        agent = AgentFactory.create_agent("ginecologia")
+
+        assert agent is not None
+        assert isinstance(agent, GynecologyAgent)
+        assert agent.specialty == "ginecologia"
+
     def test_create_agent_invalid_specialty(self):
         """Test creación con especialidad inválida."""
         agent = AgentFactory.create_agent("especialidad_inexistente")
@@ -252,20 +261,22 @@ class TestAgentFactory:
         """Test creación de todos los especialistas."""
         agents = AgentFactory.create_all_specialists()
 
-        assert len(agents) == 8
+        assert len(agents) == 9
 
         specialties = [agent.specialty for agent in agents]
         assert "cardiologia" in specialties
         assert "neurologia" in specialties
         assert "medicina_general" in specialties
+        assert "ginecologia" in specialties
 
     def test_get_available_specialties(self):
         """Test obtención de especialidades disponibles."""
         specialties = AgentFactory.get_available_specialties()
 
         assert isinstance(specialties, list)
-        assert len(specialties) == 8
+        assert len(specialties) == 9
         assert "cardiologia" in specialties
+        assert "ginecologia" in specialties
 
     def test_validate_specialty(self):
         """Test validación de especialidad."""

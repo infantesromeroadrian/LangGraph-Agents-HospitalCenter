@@ -1,7 +1,7 @@
 """Modelo de sesión de conversación."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Optional
 from uuid import UUID, uuid4
 
@@ -11,8 +11,8 @@ class Session:
     """Representa una sesión de conversación con un paciente."""
 
     session_id: UUID = field(default_factory=uuid4)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     patient_info: dict = field(default_factory=dict)
     metadata: dict = field(default_factory=dict)
     is_active: bool = True
@@ -41,10 +41,10 @@ class Session:
             session_id=UUID(data["session_id"]) if "session_id" in data else uuid4(),
             created_at=datetime.fromisoformat(data["created_at"])
             if "created_at" in data
-            else datetime.utcnow(),
+            else datetime.now(UTC),
             updated_at=datetime.fromisoformat(data["updated_at"])
             if "updated_at" in data
-            else datetime.utcnow(),
+            else datetime.now(UTC),
             patient_info=data.get("patient_info", {}),
             metadata=data.get("metadata", {}),
             is_active=data.get("is_active", True),
@@ -55,7 +55,7 @@ class Session:
 
     def update(self):
         """Actualiza el timestamp de última modificación."""
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(UTC)
 
     def mark_triage_completed(self):
         """Marca el triaje como completado."""

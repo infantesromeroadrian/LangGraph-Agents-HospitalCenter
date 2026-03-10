@@ -12,7 +12,6 @@ IMPORTANTE: Este test requiere que OPENAI_API_KEY esté configurado.
 """
 
 import asyncio
-import json
 import uuid
 from datetime import datetime
 
@@ -64,7 +63,7 @@ async def main():
         )
 
         print(f"   ✅ Paciente creado: {medical_record}")
-        print(f"   🚨 Alergias: Penicilina, Aspirina")
+        print("   🚨 Alergias: Penicilina, Aspirina")
         print()
 
         # 2. Crear sesión asociada al paciente
@@ -166,7 +165,7 @@ Verifica interacciones con la medicación actual.
         print("🧪 SIGUIENTE PASO (MANUAL):")
         print()
         print("1. Abre http://localhost:5000 en tu navegador")
-        print(f"2. En la consola del navegador, ejecuta:")
+        print("2. En la consola del navegador, ejecuta:")
         print(f"   localStorage.setItem('medical_record_number', '{medical_record}')")
         print("3. Recarga la página")
         print("4. Envía este mensaje:")
@@ -186,7 +185,7 @@ Verifica interacciones con la medicación actual.
         print("   ❌ NO recomiende Aspirina (el paciente es alérgico)")
         print("   ✅ Mencione alternativas seguras (ej: Paracetamol, Ibuprofeno)")
         print()
-        print(f"📋 Datos del paciente creado:")
+        print("📋 Datos del paciente creado:")
         print(f"   - HC: {medical_record}")
         print(f"   - Session ID: {session_id}")
         print(f"   - Patient ID: {patient_id}")

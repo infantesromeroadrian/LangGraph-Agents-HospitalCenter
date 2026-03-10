@@ -10,14 +10,22 @@ class Settings(BaseSettings):
     """Configuración global del sistema."""
 
     # OpenAI Configuration
-    OPENAI_API_KEY: str = Field(..., description="API Key de OpenAI")
-    OPENAI_MODEL: str = Field(default="gpt-5.1", description="Modelo de OpenAI a usar")
+    OPENAI_API_KEY: str = Field(default="your_openai_api_key_here", description="API Key de OpenAI")
+    GROQ_API_KEY: str = Field(default="", description="API Key de Groq (opcional)")
+    OPENAI_BASE_URL: str = Field(
+        default="https://api.openai.com/v1",
+        description="Base URL compatible con OpenAI (OpenAI, Groq, etc.)",
+    )
+    OPENAI_MODEL: str = Field(default="gpt-4o", description="Modelo de OpenAI a usar")
     OPENAI_TEMPERATURE: float = Field(default=0.7, ge=0.0, le=2.0)
     OPENAI_MAX_TOKENS: int = Field(default=2000, gt=0)
     OPENAI_TIMEOUT: int = Field(default=60, description="Timeout en segundos")
 
     # PostgreSQL Configuration
-    DATABASE_URL: str = Field(..., description="URL de conexión PostgreSQL")
+    DATABASE_URL: str = Field(
+        default="postgresql://medical_user:medical_password@localhost:5432/medical_db",
+        description="URL de conexión PostgreSQL",
+    )
     DB_POOL_SIZE: int = Field(default=10, gt=0)
     DB_MAX_OVERFLOW: int = Field(default=20, gt=0)
     DB_ECHO: bool = Field(default=False, description="Log SQL queries")
@@ -80,6 +88,7 @@ class Settings(BaseSettings):
         """Valida la configuración crítica."""
         critical_checks = [
             (self.OPENAI_API_KEY != "your_openai_api_key_here", "OPENAI_API_KEY no configurada"),
+            (self.OPENAI_BASE_URL.startswith("http"), "OPENAI_BASE_URL inválida"),
             (self.DATABASE_URL and "postgresql://" in self.DATABASE_URL, "DATABASE_URL inválida"),
             (
                 self.APP_SECRET_KEY != "dev-secret-key-change-in-production"
@@ -99,6 +108,7 @@ class Settings(BaseSettings):
         """Imprime información de inicio (sin secrets)."""
         print("ℹ️ Configuración del Sistema Médico")
         print(f"   - Modelo LLM: {self.OPENAI_MODEL}")
+        print(f"   - Endpoint LLM: {self.OPENAI_BASE_URL}")
         print(f"   - Server: FastAPI on {self.APP_HOST}:{self.APP_PORT}")
         print(f"   - Debug: {self.APP_DEBUG}")
         print(f"   - Log Level: {self.LOG_LEVEL}")

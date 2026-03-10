@@ -26,7 +26,6 @@ class DatabaseService:
         self.pool: Optional[Pool] = None
         self.database_url = settings.DATABASE_URL
         self._worker_pid = None  # Track worker process ID
-        self._worker_pid = None  # Track worker process ID
 
     async def _ensure_pool(self):
         """
@@ -198,16 +197,21 @@ class DatabaseService:
     ) -> list[Message]:
         """Obtiene mensajes de una sesión."""
         async with self.get_connection() as conn:
-            query = """
-                SELECT * FROM messages
-                WHERE session_id = $1
-                ORDER BY created_at ASC
-            """
-
             if limit:
-                query += f" LIMIT {limit}"
-
-            rows = await conn.fetch(query, session_id)
+                query = """
+                    SELECT * FROM messages
+                    WHERE session_id = $1
+                    ORDER BY created_at ASC
+                    LIMIT $2
+                """
+                rows = await conn.fetch(query, session_id, limit)
+            else:
+                query = """
+                    SELECT * FROM messages
+                    WHERE session_id = $1
+                    ORDER BY created_at ASC
+                """
+                rows = await conn.fetch(query, session_id)
 
             return [Message.from_dict(dict(row)) for row in rows]
 
@@ -260,7 +264,7 @@ class DatabaseService:
                 """
                 DELETE FROM sessions
                 WHERE is_active = FALSE
-                AND updated_at < NOW() - INTERVAL '$1 days'
+                AND updated_at < NOW() - make_interval(days => $1)
                 """,
                 days,
             )
