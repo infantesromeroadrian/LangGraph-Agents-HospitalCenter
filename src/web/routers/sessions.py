@@ -3,14 +3,22 @@ Endpoints para gestión de sesiones de conversación médica.
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from pydantic import BaseModel, Field
 
 from src.memory.conversation_memory import conversation_memory
 from src.services.database_service import db_service
+from src.web.auth import (
+    create_session_access_token,
+    ensure_session_access,
+    require_patient_token,
+    require_session_token,
+    set_session_auth_cookie,
+)
+from src.web.rate_limit import enforce_read_rate_limit, enforce_write_rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -19,7 +27,7 @@ router = APIRouter()
 class CreateSessionRequest(BaseModel):
     """Request para crear una nueva sesión."""
 
-    patient_info: dict = {}
+    patient_info: dict = Field(default_factory=dict)
     medical_record_number: Optional[str] = None  # ✅ NUEVO - HC del paciente registrado
 
 
@@ -32,7 +40,12 @@ class SessionResponse(BaseModel):
 
 
 @router.post("/sessions", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
-async def create_session(request: CreateSessionRequest):
+async def create_session(
+    request: CreateSessionRequest,
+    response: Response,
+    _: Any = Depends(enforce_write_rate_limit),
+    patient_auth: dict = Depends(require_patient_token),
+):
     """
     Crea una nueva sesión de conversación médica.
 
@@ -47,6 +60,15 @@ async def create_session(request: CreateSessionRequest):
     """
     try:
         session_id = uuid4()
+        medical_record_number = request.medical_record_number or patient_auth.get(
+            "medical_record_number"
+        )
+
+        if medical_record_number != patient_auth.get("medical_record_number"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para crear sesiones para otro paciente.",
+            )
 
         # Crear sesión en base de datos
         await conversation_memory.create_session(
@@ -54,52 +76,59 @@ async def create_session(request: CreateSessionRequest):
         )
 
         # ✅ NUEVO: Si se proporciona medical_record_number, asociar con paciente
-        if request.medical_record_number:
-            await db_service._ensure_pool()
-
-            async with db_service.pool.acquire() as conn:
-                # Obtener patient_id desde medical_record_number
+        if medical_record_number:
+            async with db_service.get_connection() as conn:
                 patient_row = await conn.fetchrow(
                     """
                     SELECT id FROM patients
                     WHERE medical_record_number = $1
                     """,
-                    request.medical_record_number,
+                    medical_record_number,
                 )
 
-                if patient_row:
-                    # Actualizar sesión con patient_id
-                    await conn.execute(
-                        """
-                        UPDATE sessions
-                        SET patient_id = $1
-                        WHERE session_id = $2
-                        """,
-                        patient_row["id"],
-                        session_id,
+                if not patient_row:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Paciente no encontrado para la sesión.",
                     )
 
-                    logger.info(
-                        f"✅ [API] Sesión {session_id} asociada con paciente {request.medical_record_number}"
-                    )
-                else:
-                    logger.warning(
-                        f"⚠️ [API] Medical record number {request.medical_record_number} not found"
-                    )
+                await conn.execute(
+                    """
+                    UPDATE sessions
+                    SET patient_id = $1
+                    WHERE session_id = $2
+                    """,
+                    patient_row["id"],
+                    session_id,
+                )
 
-        logger.info(f"ℹ️ [API] Sesión creada: {session_id}")
+            session_token = create_session_access_token(session_id, medical_record_number)
+            set_session_auth_cookie(response, session_token)
+
+            logger.info("✅ [API] Sesión asociada correctamente con paciente autenticado")
+
+        logger.info("ℹ️ [API] Sesión creada correctamente")
 
         return SessionResponse(
             success=True, session_id=str(session_id), thread_id=f"thread_{session_id}"
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"❌ [API] Error creando sesión: {e!s}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        logger.error("❌ [API] Error creando sesión (%s)", type(e).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al crear la sesión.",
+        ) from e
 
 
 @router.get("/sessions/{session_id}")
-async def get_session(session_id: UUID):
+async def get_session(
+    session_id: UUID,
+    _: Any = Depends(enforce_read_rate_limit),
+    session_auth: dict = Depends(require_session_token),
+):
     """
     Obtiene información completa de una sesión.
 
@@ -113,6 +142,7 @@ async def get_session(session_id: UUID):
         HTTPException: Si la sesión no existe o hay error
     """
     try:
+        ensure_session_access(session_auth, session_id)
         session = await conversation_memory.get_session(session_id)
 
         if not session:
@@ -126,5 +156,8 @@ async def get_session(session_id: UUID):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ [API] Error obteniendo sesión: {e!s}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        logger.error("❌ [API] Error obteniendo sesión (%s)", type(e).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al obtener la sesión.",
+        ) from e

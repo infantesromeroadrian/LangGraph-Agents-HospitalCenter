@@ -36,12 +36,15 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     # Startup
     logger.info("🚀 Iniciando Medical Center API (FastAPI)")
 
+    settings.validate_config()
+    logger.info("✅ Configuración crítica validada")
+
     # Inicializar servicios
     try:
         await db_service.connect()
         logger.info("✅ Base de datos conectada")
     except Exception as e:
-        logger.error(f"❌ Error conectando base de datos: {e!s}")
+        logger.error("❌ Error conectando base de datos (%s)", type(e).__name__)
         # No fallar el startup, el servicio se auto-reconectará
 
     # Inicializar grafo médico
@@ -49,7 +52,7 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
         await medical_graph_manager.initialize()
         logger.info("✅ Grafo médico inicializado")
     except Exception as e:
-        logger.error(f"❌ Error inicializando grafo: {e!s}")
+        logger.error("❌ Error inicializando grafo (%s)", type(e).__name__)
 
     logger.info("✅ Servicios inicializados correctamente")
 

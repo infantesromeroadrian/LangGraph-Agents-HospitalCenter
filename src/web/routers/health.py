@@ -4,12 +4,14 @@ Endpoints de health checks y métricas del sistema.
 
 import logging
 import os
+from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import PlainTextResponse
 
 from src.graph.medical_graph import medical_graph_manager
 from src.services.database_service import db_service
+from src.web.auth import require_admin_key
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -50,7 +52,7 @@ async def health():
 
 
 @router.get("/metrics", response_class=PlainTextResponse)
-async def metrics():
+async def metrics(_: Any = Depends(require_admin_key)):
     """
     Endpoint de métricas en formato Prometheus.
 

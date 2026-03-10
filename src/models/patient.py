@@ -8,6 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from src.utils.validators import sanitize_patient_input
+
 
 class PatientCreate(BaseModel):
     """Modelo para crear un nuevo paciente."""
@@ -33,15 +35,16 @@ class PatientCreate(BaseModel):
     @classmethod
     def validate_full_name(cls, v: str) -> str:
         """Valida que el nombre no esté vacío."""
-        if not v.strip():
+        cleaned_name = sanitize_patient_input(v, max_length=255)
+        if not cleaned_name:
             raise ValueError("El nombre no puede estar vacío")
-        return v.strip()
+        return cleaned_name
 
     @field_validator("allergies", "medications", "medical_history")
     @classmethod
     def validate_medical_fields(cls, v: str) -> str:
         """Limpia campos médicos."""
-        return v.strip() if v else "No especificado"
+        return sanitize_patient_input(v, max_length=5000) if v else "No especificado"
 
 
 class PatientUpdate(BaseModel):
@@ -56,6 +59,25 @@ class PatientUpdate(BaseModel):
     allergies: Optional[str] = None
     medications: Optional[str] = None
     medical_history: Optional[str] = None
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_optional_full_name(cls, v: Optional[str]) -> Optional[str]:
+        """Limpia el nombre si se proporciona en una actualizacion."""
+        if v is None:
+            return v
+        cleaned_name = sanitize_patient_input(v, max_length=255)
+        if not cleaned_name:
+            raise ValueError("El nombre no puede estar vacío")
+        return cleaned_name
+
+    @field_validator("allergies", "medications", "medical_history")
+    @classmethod
+    def validate_optional_medical_fields(cls, v: Optional[str]) -> Optional[str]:
+        """Limpia campos medicos opcionales."""
+        if v is None:
+            return v
+        return sanitize_patient_input(v, max_length=5000)
 
 
 class PatientResponse(BaseModel):

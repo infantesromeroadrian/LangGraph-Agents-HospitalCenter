@@ -6,6 +6,7 @@ Verifica que todos los endpoints funcionen correctamente después de la migraci�
 
 import pytest
 from fastapi.testclient import TestClient
+from src.config.settings import settings
 from src.web.main import app
 
 client = TestClient(app)
@@ -34,7 +35,7 @@ class TestFastAPIMigration:
 
     def test_metrics_endpoint(self):
         """Test que el endpoint de métricas funciona."""
-        response = client.get("/metrics")
+        response = client.get("/metrics", headers={"X-Admin-Key": settings.get_admin_api_key()})
         assert response.status_code == 200
         assert b"medical_uptime" in response.content
 

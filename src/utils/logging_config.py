@@ -53,7 +53,7 @@ def setup_logging():
         backupCount=settings.LOG_BACKUP_COUNT,
         encoding="utf-8",
     )
-    file_handler.setLevel(logging.DEBUG)  # Log todo al archivo
+    file_handler.setLevel(getattr(logging, settings.LOG_LEVEL))
     file_formatter = logging.Formatter(log_format, datefmt=date_format)
     file_handler.setFormatter(file_formatter)
 
@@ -64,7 +64,7 @@ def setup_logging():
     # Silenciar loggers ruidosos
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)
-    logging.getLogger("openai").setLevel(logging.INFO)
+    logging.getLogger("openai").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
 
     logging.info("ℹ️ Sistema de logging configurado")

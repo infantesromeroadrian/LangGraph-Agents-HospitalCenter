@@ -4,8 +4,9 @@ Router de FastAPI para gestión de pacientes.
 
 import logging
 from datetime import datetime
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from src.models.patient import (
     PatientContextForLLM,
@@ -15,10 +16,39 @@ from src.models.patient import (
     PatientUpdate,
 )
 from src.services.database_service import db_service
+from src.web.auth import (
+    clear_session_auth_cookie,
+    create_patient_access_token,
+    ensure_medical_record_access,
+    require_admin_key,
+    require_patient_token,
+    set_patient_auth_cookie,
+)
+from src.web.rate_limit import enforce_read_rate_limit, enforce_write_rate_limit
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _build_patient_response(patient_record: dict[str, Any]) -> PatientResponse:
+    """Convierte un registro de base de datos en la respuesta publica del paciente."""
+    return PatientResponse(
+        id=patient_record["id"],
+        full_name=patient_record["full_name"],
+        age=patient_record["age"],
+        gender=patient_record["gender"],
+        dni=patient_record["dni"],
+        email=patient_record["email"],
+        phone=patient_record["phone"],
+        allergies=patient_record["allergies"],
+        medications=patient_record["medications"],
+        medical_history=patient_record["medical_history"],
+        medical_record_number=patient_record["medical_record_number"],
+        created_at=patient_record["created_at"],
+        updated_at=patient_record["updated_at"],
+        last_visit=patient_record["last_visit"],
+    )
 
 
 def generate_medical_record_number() -> str:
@@ -39,7 +69,11 @@ def generate_medical_record_number() -> str:
 
 
 @router.post("/patients", response_model=PatientResponse, status_code=status.HTTP_201_CREATED)
-async def create_patient(patient_data: PatientCreate) -> PatientResponse:
+async def create_patient(
+    patient_data: PatientCreate,
+    response: Response,
+    _: Any = Depends(enforce_write_rate_limit),
+) -> PatientResponse:
     """
     Crea un nuevo paciente en la base de datos.
 
@@ -100,37 +134,30 @@ async def create_patient(patient_data: PatientCreate) -> PatientResponse:
 
         patient_record = result[0]
 
-        logger.info(f"✅ Paciente creado: {medical_record_number} - {patient_data.full_name}")
+        patient_token = create_patient_access_token(patient_record["medical_record_number"])
+        set_patient_auth_cookie(response, patient_token)
+        clear_session_auth_cookie(response)
 
-        return PatientResponse(
-            id=patient_record["id"],
-            full_name=patient_record["full_name"],
-            age=patient_record["age"],
-            gender=patient_record["gender"],
-            dni=patient_record["dni"],
-            email=patient_record["email"],
-            phone=patient_record["phone"],
-            allergies=patient_record["allergies"],
-            medications=patient_record["medications"],
-            medical_history=patient_record["medical_history"],
-            medical_record_number=patient_record["medical_record_number"],
-            created_at=patient_record["created_at"],
-            updated_at=patient_record["updated_at"],
-            last_visit=patient_record["last_visit"],
-        )
+        logger.info("✅ Paciente creado correctamente")
+
+        return _build_patient_response(patient_record)
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error creando paciente: {e}")
+        logger.error("❌ Error creando paciente (%s)", type(e).__name__)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear paciente: {e!s}",
+            detail="No se pudo registrar el paciente.",
         ) from e
 
 
 @router.get("/patients/{medical_record_number}", response_model=PatientResponse)
-async def get_patient(medical_record_number: str) -> PatientResponse:
+async def get_patient(
+    medical_record_number: str,
+    _: Any = Depends(enforce_read_rate_limit),
+    patient_auth: dict[str, Any] = Depends(require_patient_token),
+) -> PatientResponse:
     """
     Obtiene los datos de un paciente por su número de historia clínica.
 
@@ -144,6 +171,8 @@ async def get_patient(medical_record_number: str) -> PatientResponse:
         HTTPException: Si el paciente no existe
     """
     try:
+        ensure_medical_record_access(patient_auth, medical_record_number)
+
         query = """
             SELECT * FROM patients
             WHERE medical_record_number = $1
@@ -167,37 +196,26 @@ async def get_patient(medical_record_number: str) -> PatientResponse:
             medical_record_number,
         )
 
-        logger.info(f"📋 Paciente consultado: {medical_record_number}")
+        logger.info("📋 Consulta de paciente atendida")
 
-        return PatientResponse(
-            id=patient_record["id"],
-            full_name=patient_record["full_name"],
-            age=patient_record["age"],
-            gender=patient_record["gender"],
-            dni=patient_record["dni"],
-            email=patient_record["email"],
-            phone=patient_record["phone"],
-            allergies=patient_record["allergies"],
-            medications=patient_record["medications"],
-            medical_history=patient_record["medical_history"],
-            medical_record_number=patient_record["medical_record_number"],
-            created_at=patient_record["created_at"],
-            updated_at=patient_record["updated_at"],
-            last_visit=patient_record["last_visit"],
-        )
+        return _build_patient_response(patient_record)
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error obteniendo paciente: {e}")
+        logger.error("❌ Error obteniendo paciente (%s)", type(e).__name__)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al obtener paciente: {e!s}",
+            detail="No se pudo recuperar el paciente.",
         ) from e
 
 
 @router.get("/patients/{medical_record_number}/context", response_model=PatientContextForLLM)
-async def get_patient_context_for_llm(medical_record_number: str) -> PatientContextForLLM:
+async def get_patient_context_for_llm(
+    medical_record_number: str,
+    _: Any = Depends(enforce_read_rate_limit),
+    patient_auth: dict[str, Any] = Depends(require_patient_token),
+) -> PatientContextForLLM:
     """
     Obtiene el contexto del paciente formateado para el LLM.
 
@@ -210,7 +228,10 @@ async def get_patient_context_for_llm(medical_record_number: str) -> PatientCont
     Returns:
         Contexto del paciente para el LLM
     """
-    patient = await get_patient(medical_record_number)
+    patient = await get_patient(
+        medical_record_number=medical_record_number,
+        patient_auth=patient_auth,
+    )
 
     return PatientContextForLLM(
         full_name=patient.full_name,
@@ -225,7 +246,10 @@ async def get_patient_context_for_llm(medical_record_number: str) -> PatientCont
 
 @router.patch("/patients/{medical_record_number}", response_model=PatientResponse)
 async def update_patient(
-    medical_record_number: str, patient_data: PatientUpdate
+    medical_record_number: str,
+    patient_data: PatientUpdate,
+    _: Any = Depends(enforce_write_rate_limit),
+    patient_auth: dict[str, Any] = Depends(require_patient_token),
 ) -> PatientResponse:
     """
     Actualiza los datos de un paciente existente.
@@ -238,6 +262,8 @@ async def update_patient(
         Datos actualizados del paciente
     """
     try:
+        ensure_medical_record_access(patient_auth, medical_record_number)
+
         # Verificar que el paciente existe
         existing = await db_service.execute_query(
             "SELECT id FROM patients WHERE medical_record_number = $1", medical_record_number
@@ -261,7 +287,10 @@ async def update_patient(
 
         if not update_fields:
             # No hay nada que actualizar, retornar paciente actual
-            return await get_patient(medical_record_number)
+            return await get_patient(
+                medical_record_number=medical_record_number,
+                patient_auth=patient_auth,
+            )
 
         # Añadir medical_record_number como último parámetro
         update_values.append(medical_record_number)
@@ -283,37 +312,27 @@ async def update_patient(
 
         patient_record = result[0]
 
-        logger.info(f"📝 Paciente actualizado: {medical_record_number}")
+        logger.info("📝 Paciente actualizado correctamente")
 
-        return PatientResponse(
-            id=patient_record["id"],
-            full_name=patient_record["full_name"],
-            age=patient_record["age"],
-            gender=patient_record["gender"],
-            dni=patient_record["dni"],
-            email=patient_record["email"],
-            phone=patient_record["phone"],
-            allergies=patient_record["allergies"],
-            medications=patient_record["medications"],
-            medical_history=patient_record["medical_history"],
-            medical_record_number=patient_record["medical_record_number"],
-            created_at=patient_record["created_at"],
-            updated_at=patient_record["updated_at"],
-            last_visit=patient_record["last_visit"],
-        )
+        return _build_patient_response(patient_record)
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Error actualizando paciente: {e}")
+        logger.error("❌ Error actualizando paciente (%s)", type(e).__name__)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar paciente: {e!s}",
+            detail="No se pudo actualizar el paciente.",
         ) from e
 
 
 @router.get("/patients", response_model=list[PatientSummary])
-async def list_patients(limit: int = 50, offset: int = 0) -> list[PatientSummary]:
+async def list_patients(
+    limit: int = 50,
+    offset: int = 0,
+    __: Any = Depends(enforce_read_rate_limit),
+    _: Any = Depends(require_admin_key),
+) -> list[PatientSummary]:
     """
     Lista todos los pacientes (resumen).
 
@@ -346,8 +365,8 @@ async def list_patients(limit: int = 50, offset: int = 0) -> list[PatientSummary
         ]
 
     except Exception as e:
-        logger.error(f"❌ Error listando pacientes: {e}")
+        logger.error("❌ Error listando pacientes (%s)", type(e).__name__)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al listar pacientes: {e!s}",
+            detail="No se pudo listar los pacientes.",
         ) from e

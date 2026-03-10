@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """Configuración global del sistema."""
 
     # OpenAI Configuration
-    OPENAI_API_KEY: str = Field(default="your_openai_api_key_here", description="API Key de OpenAI")
+    OPENAI_API_KEY: str = Field(default="", description="API Key de OpenAI")
     GROQ_API_KEY: str = Field(default="", description="API Key de Groq (opcional)")
     OPENAI_BASE_URL: str = Field(
         default="https://api.openai.com/v1",
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     # PostgreSQL Configuration
     DATABASE_URL: str = Field(
-        default="postgresql://medical_user:medical_password@localhost:5432/medical_db",
+        default="postgresql://replace_user:replace_password@localhost:5432/medical_db",
         description="URL de conexión PostgreSQL",
     )
     DB_POOL_SIZE: int = Field(default=10, gt=0)
@@ -36,7 +36,15 @@ class Settings(BaseSettings):
     APP_HOST: str = Field(default="0.0.0.0", description="Host para el servidor")
     APP_PORT: int = Field(default=5000, gt=0, lt=65536, description="Puerto del servidor")
     APP_DEBUG: bool = Field(default=False, description="Modo debug (solo desarrollo)")
-    APP_SECRET_KEY: str = Field(default="dev-secret-key-change-in-production")
+    APP_SECRET_KEY: str = Field(default="", description="Secreto principal de la aplicación")
+    JWT_SECRET_KEY: str = Field(default="", description="Secreto de firma para tokens de acceso")
+    ADMIN_API_KEY: str = Field(
+        default="", description="Clave administrativa para endpoints protegidos"
+    )
+    PATIENT_TOKEN_TTL_HOURS: int = Field(default=12, ge=1, le=168)
+    SESSION_TOKEN_TTL_HOURS: int = Field(default=4, ge=1, le=168)
+    AUTH_COOKIE_SECURE: bool = Field(default=False)
+    AUTH_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = Field(default="lax")
 
     # LangGraph Configuration
     RECURSION_LIMIT: int = Field(default=50, gt=0, description="Límite de recursión del grafo")
@@ -50,7 +58,9 @@ class Settings(BaseSettings):
 
     # Security
     CORS_ORIGINS: str = Field(default="http://localhost:5000,http://127.0.0.1:5000")
-    RATE_LIMIT: str = Field(default="100/hour")
+    RATE_LIMIT: str = Field(default="120/minute")
+    WRITE_RATE_LIMIT: str = Field(default="30/minute")
+    WEBSOCKET_RATE_LIMIT: str = Field(default="90/minute")
 
     # Medical System Configuration
     MAX_PARALLEL_EVALUATIONS: int = Field(default=8, description="Número de especialistas")
@@ -64,6 +74,13 @@ class Settings(BaseSettings):
         """Usar DATABASE_URL si no se especifica CHECKPOINT_DB_URL."""
         if not v and "DATABASE_URL" in values:
             return values["DATABASE_URL"]
+        return v
+
+    @validator("JWT_SECRET_KEY", pre=True, always=True)
+    def set_jwt_secret_key(cls, v, values):
+        """Usar APP_SECRET_KEY si no se especifica JWT_SECRET_KEY."""
+        if not v and "APP_SECRET_KEY" in values:
+            return values["APP_SECRET_KEY"]
         return v
 
     @validator("CORS_ORIGINS")
@@ -88,16 +105,17 @@ class Settings(BaseSettings):
 
     def validate_config(self) -> bool:
         """Valida la configuración crítica."""
+        token_signing_key = self.get_token_signing_key()
+        admin_api_key = self.get_admin_api_key()
         critical_checks = [
-            (self.OPENAI_API_KEY != "your_openai_api_key_here", "OPENAI_API_KEY no configurada"),
+            (bool(self.OPENAI_API_KEY), "OPENAI_API_KEY no configurada"),
             (self.OPENAI_BASE_URL.startswith("http"), "OPENAI_BASE_URL inválida"),
             (self.DATABASE_URL and "postgresql://" in self.DATABASE_URL, "DATABASE_URL inválida"),
             (
-                self.APP_SECRET_KEY != "dev-secret-key-change-in-production"
-                if not self.APP_DEBUG
-                else True,
-                "APP_SECRET_KEY debe cambiarse en producción",
+                len(token_signing_key) >= 32,
+                "APP_SECRET_KEY/JWT_SECRET_KEY debe tener al menos 32 caracteres",
             ),
+            (len(admin_api_key) >= 16, "ADMIN_API_KEY debe tener al menos 16 caracteres"),
         ]
 
         for check, error_msg in critical_checks:
@@ -105,6 +123,14 @@ class Settings(BaseSettings):
                 raise ValueError(f"Configuración inválida: {error_msg}")
 
         return True
+
+    def get_token_signing_key(self) -> str:
+        """Obtiene la clave efectiva para firmar tokens."""
+        return self.JWT_SECRET_KEY or self.APP_SECRET_KEY
+
+    def get_admin_api_key(self) -> str:
+        """Obtiene la clave administrativa efectiva."""
+        return self.ADMIN_API_KEY or self.APP_SECRET_KEY
 
     def print_startup_info(self):
         """Imprime información de inicio (sin secrets)."""

@@ -9,16 +9,27 @@ con asyncpg y habilitando la persistencia de mensajes.
 import base64
 import binascii
 import logging
+from typing import cast
 from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from src.config.settings import settings
 from src.graph.medical_graph import medical_graph_manager
-from src.graph.state import create_initial_state
+from src.graph.state import MedicalGraphState, create_initial_state
 from src.memory.conversation_memory import conversation_memory
 from src.models.message import Message
 from src.services.database_service import db_service
+from src.utils.validators import (
+    format_patient_record_for_llm,
+    sanitize_llm_input,
+    sanitize_patient_input,
+)
+from src.web.auth import WebSocketAuthorizationError, require_websocket_session_access
+from src.web.rate_limit import (
+    WEBSOCKET_RATE_LIMIT_ERROR_MESSAGE,
+    enforce_websocket_message_rate_limit,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -42,13 +53,13 @@ class ConnectionManager:
         """Acepta y registra una nueva conexión WebSocket."""
         await websocket.accept()
         self.active_connections[session_id] = websocket
-        logger.info(f"ℹ️ [WebSocket] Cliente conectado: {session_id}")
+        logger.info("ℹ️ [WebSocket] Cliente conectado")
 
     def disconnect(self, session_id: str):
         """Desregistra una conexión WebSocket."""
         if session_id in self.active_connections:
             del self.active_connections[session_id]
-            logger.info(f"ℹ️ [WebSocket] Cliente desconectado: {session_id}")
+            logger.info("ℹ️ [WebSocket] Cliente desconectado")
 
     async def send_json(self, session_id: str, data: dict):
         """Envía datos JSON a un cliente específico."""
@@ -80,10 +91,7 @@ async def load_patient_context_for_session(session_id: str) -> tuple[dict, str |
         4. Formatear contexto para LLM
     """
     try:
-        # Asegurar que hay pool de conexiones
-        await db_service._ensure_pool()
-
-        async with db_service.pool.acquire() as conn:
+        async with db_service.get_connection() as conn:
             # 1. Obtener patient_id desde la sesión
             session_row = await conn.fetchrow(
                 """
@@ -95,7 +103,7 @@ async def load_patient_context_for_session(session_id: str) -> tuple[dict, str |
             )
 
             if not session_row or not session_row["patient_id"]:
-                logger.info(f"ℹ️ [Patient] No patient associated with session: {session_id}")
+                logger.info("ℹ️ [Patient] No hay paciente asociado a la sesión")
                 return {}, None
 
             patient_id = session_row["patient_id"]
@@ -118,7 +126,7 @@ async def load_patient_context_for_session(session_id: str) -> tuple[dict, str |
             )
 
             if not patient_row:
-                logger.warning(f"⚠️ [Patient] Patient ID {patient_id} not found in database")
+                logger.warning("⚠️ [Patient] Paciente asociado no encontrado en base de datos")
                 return {}, None
 
             # 3. Construir diccionario de info básica
@@ -132,40 +140,43 @@ async def load_patient_context_for_session(session_id: str) -> tuple[dict, str |
             # 4. Formatear contexto para LLM (CRITICAL: usado en prompts de agentes)
             gender_map = {"M": "Masculino", "F": "Femenino", "O": "Otro", "N": "No especificado"}
             gender_display = gender_map.get(patient_row["gender"], patient_row["gender"])
+            safe_allergies = sanitize_llm_input(
+                patient_row["allergies"] or "Ninguna conocida", session_id=session_id
+            )
+            safe_medications = sanitize_llm_input(
+                patient_row["medications"] or "Ninguna", session_id=session_id
+            )
+            safe_history = sanitize_llm_input(
+                patient_row["medical_history"] or "Sin antecedentes relevantes",
+                session_id=session_id,
+            )
 
-            patient_context = f"""
-INFORMACIÓN DEL PACIENTE (Historia Clínica: {patient_row["medical_record_number"]}):
+            patient_context = format_patient_record_for_llm(
+                f"""
+RESUMEN CLINICO DEL PACIENTE:
 
-Datos Personales:
-- Nombre: {patient_row["full_name"]}
+Datos clinicos relevantes:
 - Edad: {patient_row["age"]} años
-- Género: {gender_display}
+- Genero: {gender_display}
 
-Alergias Conocidas:
-{patient_row["allergies"] or "Ninguna conocida"}
+- Alergias conocidas: {safe_allergies}
+- Medicacion actual: {safe_medications}
+- Antecedentes medicos: {safe_history}
 
-Medicación Actual:
-{patient_row["medications"] or "Ninguna"}
-
-Antecedentes Médicos:
-{patient_row["medical_history"] or "Sin antecedentes relevantes"}
-
-IMPORTANTE: Considera esta información al hacer recomendaciones médicas.
-No recomiendes medicamentos a los que el paciente sea alérgico.
-Verifica interacciones con la medicación actual.
+Usa estos datos solo como contexto clinico adicional.
+No recomiendes medicamentos a los que el paciente sea alergico.
+Verifica interacciones con la medicacion actual.
 """.strip()
+            )
 
             logger.info(
-                f"✅ [Patient] Contexto cargado: {patient_row['full_name']} ({patient_row['medical_record_number']})"
+                "✅ [Patient] Contexto clínico protegido cargado para sesión %s", session_id
             )
 
             return patient_info, patient_context
 
     except Exception as e:
-        logger.error(f"❌ [Patient] Error loading patient context: {e!s}")
-        import traceback
-
-        logger.error(traceback.format_exc())
+        logger.error("❌ [Patient] Error cargando contexto clínico (%s)", type(e).__name__)
         return {}, None
 
 
@@ -242,6 +253,13 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         - {"type": "agent_response", "content": "...", ...}
         - {"type": "error", "message": "..."}
     """
+    try:
+        require_websocket_session_access(websocket, session_id)
+    except WebSocketAuthorizationError as exc:
+        logger.warning("⚠️ [WebSocket] Acceso rechazado a sesión %s: %s", session_id, exc.reason)
+        await websocket.close(code=exc.close_code, reason=exc.reason)
+        return
+
     await manager.connect(session_id, websocket)
 
     try:
@@ -249,7 +267,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             # Recibir mensaje del cliente
             data = await websocket.receive_json()
 
-            message_content = (data.get("message") or "").strip()
+            message_content = sanitize_patient_input(data.get("message") or "", max_length=5000)
             attachments = data.get("attachments") or []
             if not message_content and not attachments:
                 await manager.send_json(
@@ -257,7 +275,19 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 )
                 continue
 
-            logger.info(f"ℹ️ [WebSocket] Mensaje recibido - Sesión: {session_id}")
+            retry_after = enforce_websocket_message_rate_limit(websocket, session_id)
+            if retry_after is not None:
+                await manager.send_json(
+                    session_id,
+                    {
+                        "type": "error",
+                        "message": WEBSOCKET_RATE_LIMIT_ERROR_MESSAGE,
+                        "retry_after": retry_after,
+                    },
+                )
+                continue
+
+            logger.info("ℹ️ [WebSocket] Mensaje recibido")
 
             # Procesar mensaje del usuario
             await process_user_message(
@@ -269,14 +299,17 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
     except WebSocketDisconnect:
         manager.disconnect(session_id)
-        logger.info(f"ℹ️ [WebSocket] Cliente desconectado normalmente: {session_id}")
+        logger.info("ℹ️ [WebSocket] Cliente desconectado normalmente")
     except Exception as e:
-        logger.error(f"❌ [WebSocket] Error: {e!s}")
-        import traceback
-
-        logger.error(traceback.format_exc())
+        logger.error("❌ [WebSocket] Error en conexión (%s)", type(e).__name__)
         try:
-            await manager.send_json(session_id, {"type": "error", "message": str(e)})
+            await manager.send_json(
+                session_id,
+                {
+                    "type": "error",
+                    "message": "Se ha producido un error procesando la conexión.",
+                },
+            )
         except Exception:
             pass  # El websocket ya está cerrado
         finally:
@@ -309,7 +342,9 @@ async def process_user_message(
     """
     try:
         normalized_attachments = _normalize_image_attachments(attachments)
-        normalized_message_content = message_content.strip() or DEFAULT_IMAGE_MESSAGE
+        normalized_message_content = (
+            sanitize_llm_input(message_content, session_id=session_id) or DEFAULT_IMAGE_MESSAGE
+        )
 
         # Crear mensaje del usuario
         user_message = Message(
@@ -321,7 +356,7 @@ async def process_user_message(
 
         # ✅ GUARDAR MENSAJE - FUNCIONA PERFECTAMENTE CON FASTAPI
         await conversation_memory.add_message(user_message)
-        logger.debug(f"✅ Mensaje de usuario guardado en DB: {session_id}")
+        logger.debug("✅ Mensaje de usuario guardado en DB")
 
         # ✅ NUEVO: CARGAR CONTEXTO DEL PACIENTE (si existe)
         patient_info, patient_context = await load_patient_context_for_session(session_id)
@@ -336,16 +371,20 @@ async def process_user_message(
         snapshot = await graph.aget_state(config)
         existing_state = snapshot.values if snapshot and snapshot.values else {}
 
+        state: MedicalGraphState
         if existing_state:
             logger.info(
                 "ℹ️ [WebSocket] Continuando conversación existente con especialista: %s",
                 existing_state.get("active_specialist"),
             )
-            state = {
-                "messages": [user_message],
-                "patient_info": patient_info,
-                "patient_context": patient_context,
-            }
+            state = cast(
+                MedicalGraphState,
+                {
+                    "messages": [user_message],
+                    "patient_info": patient_info,
+                    "patient_context": patient_context,
+                },
+            )
         else:
             logger.info("ℹ️ [WebSocket] Iniciando conversación nueva con triaje completo")
             state = create_initial_state(
@@ -362,7 +401,7 @@ async def process_user_message(
         logger.info("ℹ️ [WebSocket] Iniciando stream del grafo médico")
 
         # ✅ ASYNC STREAMING NATIVO - SIN CONFLICTOS DE EVENT LOOP
-        async for event in medical_graph_manager.stream(state, config):
+        async for event in medical_graph_manager.stream(cast(MedicalGraphState, state), config):
             node_name = next(iter(event.keys()))
             node_output = event[node_name]
 
@@ -392,9 +431,9 @@ async def process_user_message(
                     # ✅ GUARDAR MENSAJE EN DB - YA NO HAY PROBLEMAS DE EVENT LOOP
                     try:
                         await conversation_memory.add_message(msg)
-                        logger.debug(f"✅ Mensaje de agente guardado en DB: {msg.role}")
+                        logger.debug("✅ Mensaje de agente guardado en DB")
                     except Exception as e:
-                        logger.error(f"⚠️ Error guardando mensaje: {e!s}")
+                        logger.error("⚠️ Error guardando mensaje (%s)", type(e).__name__)
                         # No fallar el flujo por error de persistencia
 
                     # Enviar respuesta al cliente
@@ -410,12 +449,12 @@ async def process_user_message(
                         },
                     )
 
-        logger.info(f"✅ [WebSocket] Procesamiento completado exitosamente: {session_id}")
+        logger.info("✅ [WebSocket] Procesamiento completado exitosamente")
 
     except Exception as e:
-        logger.error(f"❌ [WebSocket] Error procesando mensaje: {e!s}")
-        import traceback
+        logger.error("❌ [WebSocket] Error procesando mensaje (%s)", type(e).__name__)
 
-        logger.error(traceback.format_exc())
-
-        await manager.send_json(session_id, {"type": "error", "message": str(e)})
+        await manager.send_json(
+            session_id,
+            {"type": "error", "message": "Se ha producido un error procesando la consulta."},
+        )

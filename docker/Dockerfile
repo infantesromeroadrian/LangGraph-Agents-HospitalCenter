@@ -83,4 +83,4 @@ CMD ["uvicorn", \
      "--loop", "uvloop", \
      "--log-level", "info", \
      "--proxy-headers", \
-     "--forwarded-allow-ips", "*"]
+     "--forwarded-allow-ips", "127.0.0.1,::1"]

@@ -4,12 +4,14 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
+from dataclasses import replace
 from typing import Any, Optional
 from uuid import UUID
 
 from src.models.evaluation import SpecialistEvaluation
 from src.models.message import Message
 from src.services.llm_service import LLMService
+from src.utils.validators import format_user_input_for_llm, sanitize_llm_input
 
 logger = logging.getLogger(__name__)
 
@@ -68,23 +70,23 @@ class BaseMedicalAgent(ABC):
         """
         try:
             # Extraer contenido del mensaje
-            query = message.content if hasattr(message, "content") else str(message)
-            raw_query = query
+            raw_query = message.content if hasattr(message, "content") else str(message)
+            query = sanitize_llm_input(
+                raw_query, session_id=str(session_id) if session_id else None
+            )
 
             logger.debug(f"🐞 {self.specialty}: Evaluando caso")
 
-            # ✅ NUEVO: Inyectar contexto del paciente SI está disponible
-            if patient_context:
-                query = f"{patient_context}\n\n---\n\nCONSULTA DEL PACIENTE:\n{query}"
-                logger.debug(f"✅ {self.specialty}: Contexto del paciente INYECTADO")
-
             # Construir mensajes para evaluación
-            messages = [
-                {"role": "system", "content": self.system_prompt},
+            messages = [{"role": "system", "content": self.system_prompt}]
+            if patient_context:
+                messages.append({"role": "system", "content": patient_context})
+                logger.debug("✅ %s: Contexto del paciente protegido en evaluación", self.specialty)
+            messages.append(
                 self._build_llm_user_message(
                     self._format_evaluation_prompt(query, triage_analysis or {}), message
-                ),
-            ]
+                )
+            )
 
             # Solicitar evaluación en JSON
             response = await self.llm.complete_json(messages)
@@ -141,13 +143,18 @@ class BaseMedicalAgent(ABC):
         """
         try:
             logger.debug(f"🐞 {self.specialty}: Generando respuesta")
-            history_for_turn = self._prepare_history_for_current_turn(message, history)
+            current_message = self._sanitize_current_message(message, session_id)
+            history_for_turn = self._prepare_history_for_current_turn(current_message, history)
 
             # Construir mensajes para chat
-            session_context = self._build_session_context(message, session_id, history_for_turn)
+            session_context = self._build_session_context(
+                current_message, session_id, history_for_turn
+            )
 
             if session_context["consultation_stage"] == "appointment_request":
-                return self._build_appointment_guidance(message, history_for_turn, session_context)
+                return self._build_appointment_guidance(
+                    current_message, history_for_turn, session_context
+                )
 
             messages = [
                 {"role": "system", "content": self.system_prompt},
@@ -157,7 +164,7 @@ class BaseMedicalAgent(ABC):
             # ✅ NUEVO: Inyectar contexto del paciente ANTES del historial
             if patient_context:
                 messages.append({"role": "system", "content": patient_context})
-                logger.info(f"✅ {self.specialty}: Contexto del paciente INYECTADO en el chat")
+                logger.info("✅ %s: Contexto del paciente protegido en el chat", self.specialty)
 
             # Añadir historial de conversación
             for msg in history_for_turn[-10:]:  # Últimos 10 mensajes
@@ -165,7 +172,10 @@ class BaseMedicalAgent(ABC):
 
             # Añadir mensaje actual
             messages.append(
-                self._build_llm_user_message(self._extract_message_text(message), message)
+                self._build_llm_user_message(
+                    format_user_input_for_llm(self._extract_message_text(current_message)),
+                    current_message,
+                )
             )
 
             # Generar respuesta
@@ -191,6 +201,15 @@ class BaseMedicalAgent(ABC):
     def _extract_message_text(self, message: str | Message) -> str:
         """Extrae el texto del mensaje actual."""
         return message.content if isinstance(message, Message) else message
+
+    def _sanitize_current_message(self, message: str | Message, session_id: UUID) -> str | Message:
+        """Sanitiza el mensaje actual preservando adjuntos si existen."""
+        sanitized_text = sanitize_llm_input(
+            self._extract_message_text(message), session_id=str(session_id)
+        )
+        if isinstance(message, Message):
+            return replace(message, content=sanitized_text)
+        return sanitized_text
 
     def _build_llm_user_message(
         self, prompt_text: str, raw_message: str | Message
@@ -401,7 +420,9 @@ class BaseMedicalAgent(ABC):
         from src.config.prompts import SPECIALIST_EVALUATION_PROMPT
 
         return SPECIALIST_EVALUATION_PROMPT.format(
-            specialty=self.specialty, triage_analysis=str(triage_analysis), patient_query=query
+            specialty=self.specialty,
+            triage_analysis=json.dumps(triage_analysis, ensure_ascii=False, default=str),
+            patient_query=format_user_input_for_llm(query),
         )
 
     def _get_chat_prompt(self, session_context: dict) -> str:

@@ -5,8 +5,9 @@ from typing import Optional
 from uuid import UUID
 
 from src.agents.base_agent import BaseMedicalAgent
-from src.config.prompts import TRIAGE_PROMPT, get_all_specialties
+from src.config.prompts import SECURITY_RULES_PROMPT, TRIAGE_PROMPT, get_all_specialties
 from src.services.llm_service import LLMService
+from src.utils.validators import format_user_input_for_llm, sanitize_llm_input
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,9 @@ class TriageAgent(BaseMedicalAgent):
         Returns:
             Prompt de sistema
         """
-        return f"""Eres un médico de triaje experto en evaluación inicial de pacientes.
+        return (
+            SECURITY_RULES_PROMPT
+            + f"""Eres un médico de triaje experto en evaluación inicial de pacientes.
 
 Tu misión es analizar rápidamente la consulta del paciente y determinar:
 1. Nivel de urgencia (urgente, no_urgente, consulta_general)
@@ -50,6 +53,7 @@ IMPORTANTE:
 - Recomienda 1-3 especialidades según relevancia
 - Si hay señales de emergencia, marca como "urgente"
 """
+        )
 
     async def evaluate(
         self,
@@ -70,34 +74,36 @@ IMPORTANTE:
             Análisis de triaje estructurado
         """
         del triage_analysis
-        patient_query = message.content if hasattr(message, "content") else str(message)
+        raw_patient_query = message.content if hasattr(message, "content") else str(message)
+        patient_query = sanitize_llm_input(
+            raw_patient_query, session_id=str(session_id) if session_id else None
+        )
 
         try:
             logger.info(f"ℹ️ Triaje: Analizando consulta (sesión={session_id})")
 
             # ✅ NUEVO: Inyectar contexto del paciente en el prompt
-            user_prompt = TRIAGE_PROMPT.format(patient_query=patient_query)
-
-            if patient_context:
-                user_prompt = f"{patient_context}\n\n---\n\n{user_prompt}"
-                logger.info("✅ Triaje: Contexto del paciente INYECTADO en el prompt")
+            user_prompt = TRIAGE_PROMPT.format(
+                patient_query=format_user_input_for_llm(patient_query)
+            )
 
             # Construir mensajes
-            messages = [
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_prompt},
-            ]
+            messages = [{"role": "system", "content": self.system_prompt}]
+            if patient_context:
+                messages.append({"role": "system", "content": patient_context})
+                logger.info("✅ Triaje: Contexto del paciente protegido en el prompt")
+            messages.append({"role": "user", "content": user_prompt})
 
             # Solicitar análisis en JSON
             analysis = await self.llm.complete_json(messages)
-            analysis = self._apply_triage_heuristics(patient_query, analysis)
+            analysis = self._apply_triage_heuristics(raw_patient_query, analysis)
 
             # Validar estructura básica
             self._validate_analysis(analysis)
 
             # Añadir metadata
             analysis["session_id"] = str(session_id) if session_id else None
-            analysis["query_length"] = len(patient_query)
+            analysis["query_length"] = len(raw_patient_query)
 
             # Crear resumen para el usuario
             urgency = analysis.get("urgency", "consulta_general")

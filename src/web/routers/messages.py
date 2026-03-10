@@ -3,19 +3,26 @@ Endpoints para gestión de mensajes de conversación.
 """
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from src.memory.conversation_memory import conversation_memory
+from src.web.auth import ensure_session_access, require_session_token
+from src.web.rate_limit import enforce_read_rate_limit
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
 @router.get("/sessions/{session_id}/messages")
-async def get_messages(session_id: UUID, limit: Optional[int] = Query(default=50, ge=1, le=500)):
+async def get_messages(
+    session_id: UUID,
+    limit: Optional[int] = Query(default=50, ge=1, le=500),
+    _: Any = Depends(enforce_read_rate_limit),
+    session_auth: dict = Depends(require_session_token),
+):
     """
     Obtiene el historial de mensajes de una sesión.
 
@@ -34,6 +41,8 @@ async def get_messages(session_id: UUID, limit: Optional[int] = Query(default=50
         HTTPException: Si hay error obteniendo los mensajes
     """
     try:
+        ensure_session_access(session_auth, session_id)
+
         # ✅ CORRECTO: Usar get_messages en vez de create_session
         messages = await conversation_memory.get_messages(session_id=session_id, limit=limit)
 
@@ -43,6 +52,11 @@ async def get_messages(session_id: UUID, limit: Optional[int] = Query(default=50
             "messages": [msg.to_dict() for msg in messages],
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"❌ [API] Error obteniendo mensajes: {e!s}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)) from e
+        logger.error("❌ [API] Error obteniendo mensajes (%s)", type(e).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al obtener los mensajes.",
+        ) from e
