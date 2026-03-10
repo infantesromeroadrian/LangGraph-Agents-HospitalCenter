@@ -107,7 +107,7 @@ async def index(request: Request):
     Returns:
         Template HTML renderizado
     """
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "settings": settings})
 
 
 @app.get("/admission", response_class=HTMLResponse)

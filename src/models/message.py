@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 from uuid import UUID, uuid4
 
 
@@ -46,5 +46,45 @@ class Message:
         )
 
     def to_langchain_format(self) -> dict:
-        """Convierte a formato compatible con LangChain."""
-        return {"role": self.role, "content": self.content}
+        """Convierte a formato compatible con OpenAI/LangChain."""
+        attachments = self.get_image_attachments()
+        if not attachments:
+            return {"role": self.role, "content": self.content}
+
+        content_parts: list[dict[str, Any]] = [
+            {"type": "text", "text": self.content or "Imagen adjunta para valoración clínica."}
+        ]
+        for attachment in attachments:
+            content_parts.append(
+                {"type": "image_url", "image_url": {"url": attachment["data_url"]}}
+            )
+
+        return {"role": self.role, "content": content_parts}
+
+    def get_image_attachments(self) -> list[dict[str, str]]:
+        """Obtiene adjuntos de imagen desde metadata."""
+        attachments = self.metadata.get("attachments", [])
+        if not isinstance(attachments, list):
+            return []
+
+        valid_attachments: list[dict[str, str]] = []
+        for attachment in attachments:
+            if not isinstance(attachment, dict):
+                continue
+            data_url = attachment.get("data_url")
+            media_type = attachment.get("media_type")
+            if not data_url or not media_type:
+                continue
+            valid_attachments.append(
+                {
+                    "data_url": data_url,
+                    "media_type": media_type,
+                    "filename": attachment.get("filename", "image"),
+                }
+            )
+
+        return valid_attachments
+
+    def has_image_attachments(self) -> bool:
+        """Indica si el mensaje incluye imágenes."""
+        return bool(self.get_image_attachments())

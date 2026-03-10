@@ -24,7 +24,8 @@ function displayMessage(data) {
         role: data.role || 'assistant',
         content: data.content || data.message,
         specialist: data.specialist_type,
-        timestamp: data.timestamp || new Date().toISOString()
+        timestamp: data.timestamp || new Date().toISOString(),
+        attachments: data.attachments || (data.metadata && data.metadata.attachments) || []
     });
 
     // Mark as done processing if it's the final response
@@ -57,6 +58,7 @@ function addMessageToUI(message) {
         messageEl.innerHTML = `
             <div class="message-bubble user-message">
                 <div class="message-content">${escapeHtml(message.content)}</div>
+                ${renderImageAttachments(message.attachments)}
                 <div class="message-time">${timeStr}</div>
             </div>
         `;
@@ -75,6 +77,7 @@ function addMessageToUI(message) {
                     <strong>${escapeHtml(specialistDisplay)}</strong>
                 </div>
                 <div class="message-content">${formatMessageContent(message.content)}</div>
+                ${renderImageAttachments(message.attachments)}
                 <div class="message-time">${timeStr}</div>
             </div>
         `;
@@ -190,6 +193,26 @@ function formatMessageContent(content) {
     return formatted;
 }
 
+function renderImageAttachments(attachments) {
+    if (!attachments || !attachments.length) return '';
+
+    const items = attachments
+        .filter((attachment) => attachment && attachment.data_url)
+        .map((attachment) => `
+            <a href="${attachment.data_url}" target="_blank" rel="noopener">
+                <img
+                    src="${attachment.data_url}"
+                    alt="${escapeHtml(attachment.filename || 'Adjunto clínico')}"
+                    class="message-attachment-image"
+                >
+            </a>
+        `)
+        .join('');
+
+    if (!items) return '';
+    return `<div class="message-attachments">${items}</div>`;
+}
+
 /**
  * Escape HTML to prevent XSS
  */
@@ -225,11 +248,13 @@ function getSpecialistDisplayName(specialty) {
         'neurology': 'Neurología',
         'pediatrics': 'Pediatría',
         'dermatology': 'Dermatología',
+        'ginecologia': 'Ginecología',
         'orthopedics': 'Traumatología',
         'psychiatry': 'Psiquiatría',
         'oncology': 'Oncología',
         'triage': 'Triaje',
-        'consensus': 'Consenso'
+        'consensus': 'Consenso',
+        'emergencias': 'Emergencias'
     };
 
     return names[specialty] || specialty;
@@ -245,11 +270,13 @@ function getSpecialistIcon(specialty) {
         'neurology': 'fa-brain',
         'pediatrics': 'fa-child',
         'dermatology': 'fa-hand-sparkles',
+        'ginecologia': 'fa-venus',
         'orthopedics': 'fa-bone',
         'psychiatry': 'fa-head-side-virus',
         'oncology': 'fa-ribbon',
         'triage': 'fa-clipboard-list',
-        'consensus': 'fa-users'
+        'consensus': 'fa-users',
+        'emergencias': 'fa-triangle-exclamation'
     };
 
     return icons[specialty] || 'fa-stethoscope';
@@ -265,11 +292,13 @@ function getSpecialistColor(specialty) {
         'neurology': '#6f42c1',
         'pediatrics': '#fd7e14',
         'dermatology': '#20c997',
+        'ginecologia': '#c2185b',
         'orthopedics': '#0dcaf0',
         'psychiatry': '#0d6efd',
         'oncology': '#d63384',
         'triage': '#ffc107',
-        'consensus': '#198754'
+        'consensus': '#198754',
+        'emergencias': '#E74C3C'
     };
 
     return colors[specialty] || '#6c757d';

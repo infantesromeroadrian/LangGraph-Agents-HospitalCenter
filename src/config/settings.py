@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     OPENAI_TEMPERATURE: float = Field(default=0.7, ge=0.0, le=2.0)
     OPENAI_MAX_TOKENS: int = Field(default=2000, gt=0)
     OPENAI_TIMEOUT: int = Field(default=60, description="Timeout en segundos")
+    MAX_IMAGE_ATTACHMENTS: int = Field(default=3, ge=1, le=5)
+    MAX_IMAGE_SIZE_MB: int = Field(default=5, ge=1, le=20)
 
     # PostgreSQL Configuration
     DATABASE_URL: str = Field(
@@ -109,6 +111,9 @@ class Settings(BaseSettings):
         print("ℹ️ Configuración del Sistema Médico")
         print(f"   - Modelo LLM: {self.OPENAI_MODEL}")
         print(f"   - Endpoint LLM: {self.OPENAI_BASE_URL}")
+        print(
+            f"   - Imágenes por consulta: {self.MAX_IMAGE_ATTACHMENTS} (máx. {self.MAX_IMAGE_SIZE_MB} MB)"
+        )
         print(f"   - Server: FastAPI on {self.APP_HOST}:{self.APP_PORT}")
         print(f"   - Debug: {self.APP_DEBUG}")
         print(f"   - Log Level: {self.LOG_LEVEL}")

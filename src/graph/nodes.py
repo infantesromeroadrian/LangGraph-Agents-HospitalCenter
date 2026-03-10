@@ -13,6 +13,11 @@ from src.models.message import Message
 logger = logging.getLogger(__name__)
 
 
+def _is_emergency_state(state: MedicalGraphState) -> bool:
+    """Determina si el estado actual corresponde a una urgencia."""
+    return state.get("triage_data", {}).get("urgency", "").lower() == "urgente"
+
+
 async def triage_node(state: MedicalGraphState) -> dict:
     """
     Nodo de triaje inicial.
@@ -90,6 +95,83 @@ async def triage_node(state: MedicalGraphState) -> dict:
             metadata={"error": str(e)},
         )
         return {"messages": [error_message], "triage_completed": False}
+
+
+async def emergency_response_node(state: MedicalGraphState) -> dict:
+    """Genera una respuesta inmediata y segura cuando el triaje detecta urgencia."""
+    session_id = state["session_id"]
+    triage_data = state.get("triage_data", {})
+    recommended_specialties = triage_data.get("recommended_specialties", [])
+    main_symptoms = triage_data.get("main_symptoms", [])
+
+    specialty_hint = recommended_specialties[0] if recommended_specialties else "medicina_general"
+    urgent_signs = [
+        "dolor intenso o que empeora rápidamente",
+        "dificultad para respirar",
+        "fiebre alta o mal estado general",
+        "sangrado abundante o anormal",
+        "desmayo, confusión o debilidad marcada",
+    ]
+
+    if specialty_hint == "ginecologia":
+        urgent_signs = [
+            "dolor pélvico intenso o abdomen muy doloroso",
+            "fiebre alta o escalofríos",
+            "sangrado vaginal abundante o embarazo posible con dolor",
+            "flujo muy maloliente con empeoramiento rápido",
+            "vómitos, mareo intenso o sensación de desmayo",
+        ]
+    elif specialty_hint == "cardiologia":
+        urgent_signs = [
+            "dolor torácico opresivo o que se irradia",
+            "falta de aire importante",
+            "desmayo o casi desmayo",
+            "sudor frío o palidez intensa",
+            "palpitaciones con mareo severo",
+        ]
+    elif specialty_hint == "neurologia":
+        urgent_signs = [
+            "debilidad en un lado del cuerpo",
+            "dificultad para hablar o entender",
+            "convulsiones",
+            "dolor de cabeza súbito muy intenso",
+            "pérdida de conciencia o confusión aguda",
+        ]
+
+    symptoms_text = (
+        ", ".join(main_symptoms) if main_symptoms else "síntomas potencialmente urgentes"
+    )
+    guidance = "\n".join(f"- {sign}" for sign in urgent_signs)
+    message = Message(
+        role="assistant",
+        content=(
+            "He detectado una situación que requiere valoración médica urgente.\n\n"
+            f"Motivo principal identificado: {symptoms_text}.\n\n"
+            "Qué hacer ahora:\n"
+            "1. No continúes dependiendo solo de este chat para decidir.\n"
+            "2. Busca atención médica presencial hoy mismo.\n"
+            "3. Si estás sola, intenta avisar a una persona de confianza.\n\n"
+            "Acude a urgencias o llama a emergencias si presentas cualquiera de estos signos:\n"
+            f"{guidance}\n\n"
+            "Si puedes desplazarte de forma segura, lleva una lista de tus síntomas, alergias, medicación y el tiempo de evolución."
+        ),
+        session_id=session_id,
+        specialist_type="emergencias",
+        metadata={
+            "triage_data": triage_data,
+            "recommended_specialty": specialty_hint,
+            "emergency_routing": True,
+        },
+    )
+
+    logger.warning("⚠️ [Emergency] Caso urgente derivado a respuesta de emergencia")
+    return {
+        "messages": [message],
+        "needs_parallel_evaluation": False,
+        "selected_specialist": None,
+        "active_specialist": None,
+        "metadata": {"emergency_routing": True},
+    }
 
 
 def fan_out_to_specialists(state: MedicalGraphState) -> list[Send]:
@@ -288,7 +370,7 @@ async def specialist_chat_node(state: MedicalGraphState) -> dict:
         # ✅ NUEVO: Pasar contexto del paciente también en el chat
         # Generar respuesta conversacional
         response = await agent.chat(
-            message=last_user_message.content,  # Pasar contenido como string
+            message=last_user_message,
             session_id=session_id,
             history=messages,
             patient_context=patient_context,  # ✅ CRÍTICO: Contexto del paciente

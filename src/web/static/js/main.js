@@ -12,6 +12,8 @@ let threadId = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 let currentPatient = null; // ✅ NUEVO: Almacena datos del paciente actual
+let pendingImageAttachments = [];
+const DEFAULT_IMAGE_MESSAGE = 'He adjuntado una imagen para valoración clínica.';
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', async function() {
@@ -526,6 +528,7 @@ function addMessageToChat(message) {
         (message.role === 'user' ? 'Tú' : 'Asistente');
 
     const timestamp = formatTimestamp(new Date());
+    const attachmentsHtml = renderInlineAttachments(message.attachments || []);
 
     messageEl.innerHTML = `
         <div class="message-header">
@@ -535,6 +538,7 @@ function addMessageToChat(message) {
         <div class="message-content">
             ${message.content}
         </div>
+        ${attachmentsHtml}
     `;
 
     chatMessages.appendChild(messageEl);
@@ -599,29 +603,36 @@ function sendMessage() {
     if (!messageInput) return;
 
     const message = messageInput.value.trim();
-    if (!message) return;
+    if (!message && !pendingImageAttachments.length) return;
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         showError('WebSocket not connected. Please wait or reload the page.');
         return;
     }
 
-    console.log('📤 Sending message:', message);
+    const outboundMessage = message || DEFAULT_IMAGE_MESSAGE;
+    const attachmentsToSend = pendingImageAttachments.map((attachment) => ({ ...attachment }));
+
+    console.log('📤 Sending message:', outboundMessage, 'attachments:', attachmentsToSend.length);
 
     // Display user message immediately
     addMessageToChat({
         role: 'user',
-        content: message
+        content: outboundMessage,
+        attachments: attachmentsToSend
     });
 
     // Send via WebSocket
     try {
         ws.send(JSON.stringify({
-            message: message
+            message: outboundMessage,
+            attachments: attachmentsToSend
         }));
 
         // Clear input
         messageInput.value = '';
+        pendingImageAttachments = [];
+        renderPendingImagePreviews();
 
     } catch (error) {
         console.error('❌ Error sending message:', error);
@@ -677,6 +688,93 @@ function setupEventListeners() {
     if (sendBtn) {
         sendBtn.addEventListener('click', sendMessage);
     }
+
+    const attachBtn = document.getElementById('attach-image-btn');
+    const imageInput = document.getElementById('image-input');
+
+    if (attachBtn && imageInput) {
+        attachBtn.addEventListener('click', function() {
+            imageInput.click();
+        });
+        imageInput.addEventListener('change', handleImageSelection);
+    }
+}
+
+async function handleImageSelection(event) {
+    const imageInput = event.target;
+    const files = Array.from(imageInput.files || []);
+    if (!files.length) return;
+
+    const maxImages = parseInt(imageInput.dataset.maxImages || '3', 10);
+    const maxImageMb = parseInt(imageInput.dataset.maxImageMb || '5', 10);
+    const maxBytes = maxImageMb * 1024 * 1024;
+    const remainingSlots = maxImages - pendingImageAttachments.length;
+
+    if (remainingSlots <= 0) {
+        showError(`Solo puedes adjuntar hasta ${maxImages} imágenes por consulta.`);
+        imageInput.value = '';
+        return;
+    }
+
+    const selectedFiles = files.slice(0, remainingSlots);
+
+    for (const file of selectedFiles) {
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            showError('Formato no soportado. Usa JPEG, PNG o WEBP.');
+            continue;
+        }
+
+        if (file.size > maxBytes) {
+            showError(`La imagen ${file.name} supera ${maxImageMb} MB.`);
+            continue;
+        }
+
+        const dataUrl = await readFileAsDataUrl(file);
+        pendingImageAttachments.push({
+            type: 'image',
+            filename: file.name,
+            media_type: file.type,
+            data_url: dataUrl,
+            size_bytes: file.size
+        });
+    }
+
+    renderPendingImagePreviews();
+    imageInput.value = '';
+}
+
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error(`No se pudo leer ${file.name}`));
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderPendingImagePreviews() {
+    const previewStrip = document.getElementById('attachment-preview-strip');
+    if (!previewStrip) return;
+
+    if (!pendingImageAttachments.length) {
+        previewStrip.innerHTML = '';
+        previewStrip.style.display = 'none';
+        return;
+    }
+
+    previewStrip.style.display = 'flex';
+    previewStrip.innerHTML = pendingImageAttachments.map((attachment, index) => `
+        <div class="attachment-chip">
+            <button type="button" class="attachment-remove-btn" onclick="removePendingImage(${index})" aria-label="Eliminar imagen">×</button>
+            <img src="${attachment.data_url}" alt="${escapeHtml(attachment.filename)}">
+            <span class="attachment-chip-name">${escapeHtml(attachment.filename)}</span>
+        </div>
+    `).join('');
+}
+
+function removePendingImage(index) {
+    pendingImageAttachments.splice(index, 1);
+    renderPendingImagePreviews();
 }
 
 /**
@@ -718,6 +816,12 @@ function formatTimestamp(date) {
     return `${hours}:${minutes}`;
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 /**
  * Get specialist display name
  */
@@ -728,11 +832,13 @@ function getSpecialistDisplayName(specialty) {
         'neurology': 'Neurología',
         'pediatrics': 'Pediatría',
         'dermatology': 'Dermatología',
+        'ginecologia': 'Ginecología',
         'orthopedics': 'Traumatología',
         'psychiatry': 'Psiquiatría',
         'oncology': 'Oncología',
         'triage': 'Triaje',
-        'consensus': 'Consenso'
+        'consensus': 'Consenso',
+        'emergencias': 'Emergencias'
     };
 
     return names[specialty] || specialty;
@@ -748,11 +854,13 @@ function getSpecialistIcon(specialty) {
         'neurology': 'fa-brain',
         'pediatrics': 'fa-child',
         'dermatology': 'fa-hand-sparkles',
+        'ginecologia': 'fa-venus',
         'orthopedics': 'fa-bone',
         'psychiatry': 'fa-head-side-virus',
         'oncology': 'fa-ribbon',
         'triage': 'fa-clipboard-list',
-        'consensus': 'fa-users'
+        'consensus': 'fa-users',
+        'emergencias': 'fa-triangle-exclamation'
     };
 
     return icons[specialty] || 'fa-stethoscope';
@@ -768,14 +876,36 @@ function getSpecialistColor(specialty) {
         'neurology': '#6f42c1',
         'pediatrics': '#fd7e14',
         'dermatology': '#20c997',
+        'ginecologia': '#c2185b',
         'orthopedics': '#0dcaf0',
         'psychiatry': '#0d6efd',
         'oncology': '#d63384',
         'triage': '#ffc107',
-        'consensus': '#198754'
+        'consensus': '#198754',
+        'emergencias': '#E74C3C'
     };
 
     return colors[specialty] || '#6c757d';
+}
+
+function renderInlineAttachments(attachments) {
+    if (!attachments || !attachments.length) return '';
+
+    const images = attachments
+        .filter((attachment) => attachment && attachment.data_url)
+        .map((attachment) => `
+            <a href="${attachment.data_url}" target="_blank" rel="noopener">
+                <img
+                    src="${attachment.data_url}"
+                    alt="${escapeHtml(attachment.filename || 'Adjunto clínico')}"
+                    class="message-attachment-image"
+                >
+            </a>
+        `)
+        .join('');
+
+    if (!images) return '';
+    return `<div class="message-attachments">${images}</div>`;
 }
 
 /**

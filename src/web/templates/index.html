@@ -88,7 +88,20 @@
 
                 <!-- ✅ Input Form - FIJO en la parte inferior (fuera del scroll) -->
                 <div class="p-3 bg-white border-top">
+                    <div id="attachment-preview-strip" class="attachment-preview-strip mb-2" style="display: none;"></div>
+                    <input
+                        type="file"
+                        id="image-input"
+                        class="d-none"
+                        accept="image/png,image/jpeg,image/webp"
+                        multiple
+                        data-max-images="{{ settings.MAX_IMAGE_ATTACHMENTS }}"
+                        data-max-image-mb="{{ settings.MAX_IMAGE_SIZE_MB }}"
+                    >
                     <div class="input-group">
+                        <button class="btn btn-outline-secondary" id="attach-image-btn" type="button" title="Adjuntar imagen clínica">
+                            <i class="fas fa-image"></i>
+                        </button>
                         <input
                             type="text"
                             id="message-input"

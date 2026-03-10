@@ -155,6 +155,29 @@ class TestConversationMemory:
         assert len(formatted) == 3
         assert all("role" in msg and "content" in msg for msg in formatted)
 
+    def test_message_to_langchain_format_with_image_attachment(self):
+        """Test conversión multimodal de mensaje con imagen."""
+        message = Message(
+            role="user",
+            content="Mira esta lesión",
+            metadata={
+                "attachments": [
+                    {
+                        "filename": "lesion.png",
+                        "media_type": "image/png",
+                        "data_url": "data:image/png;base64,ZmFrZQ==",
+                    }
+                ]
+            },
+        )
+
+        formatted = message.to_langchain_format()
+
+        assert formatted["role"] == "user"
+        assert isinstance(formatted["content"], list)
+        assert formatted["content"][0]["type"] == "text"
+        assert formatted["content"][1]["type"] == "image_url"
+
     @pytest.mark.asyncio
     async def test_get_active_sessions(self, mock_db_service):
         """Test obtener sesiones activas."""

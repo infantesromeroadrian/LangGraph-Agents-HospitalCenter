@@ -51,6 +51,149 @@ def sample_triage_analysis():
 class TestBaseMedicalAgent:
     """Tests para BaseMedicalAgent."""
 
+    @pytest.mark.parametrize(
+        ("specialty", "current_message", "expected_missing"),
+        [
+            (
+                "medicina_general",
+                "Tengo fiebre y dolor de garganta desde hace dos días",
+                "impacto funcional",
+            ),
+            (
+                "cardiologia",
+                "Tengo dolor en el pecho y palpitaciones al subir escaleras",
+                "factores de riesgo cardiovascular",
+            ),
+            (
+                "neurologia",
+                "Desde ayer tengo dolor de cabeza y hormigueo en el brazo",
+                "conciencia, convulsiones o caídas",
+            ),
+            (
+                "pediatria",
+                "Mi niño de 3 años tiene fiebre y tos",
+                "ingesta, hidratación y diuresis",
+            ),
+            (
+                "dermatologia",
+                "Tengo una mancha roja que pica en el brazo",
+                "productos o contactos desencadenantes",
+            ),
+            (
+                "traumatologia",
+                "Me caí y me duele mucho el tobillo al caminar",
+                "inflamación, deformidad o herida",
+            ),
+            (
+                "psiquiatria",
+                "Tengo ansiedad desde hace semanas y duermo fatal",
+                "riesgo autolesivo o síntomas psicóticos",
+            ),
+            (
+                "ginecologia",
+                "Me pica la vagina y tengo flujo amarillo con olor",
+                "embarazo, menstruación y relaciones/irritantes",
+            ),
+            (
+                "oncologia",
+                "Tengo un bulto en el cuello desde hace dos meses y he perdido peso",
+                "dolor e impacto funcional",
+            ),
+        ],
+    )
+    def test_specialty_follow_up_stage_requires_missing_data(
+        self, mock_llm_service, sample_message, specialty, current_message, expected_missing
+    ):
+        """Test que todas las especialidades usan follow-up dirigido cuando faltan datos."""
+        agent = AgentFactory.create_agent(specialty, llm_service=mock_llm_service)
+        assert agent is not None
+
+        history = [
+            Message(
+                role="assistant",
+                content="Necesito hacerte unas preguntas clínicas.",
+                session_id=sample_message.session_id,
+                specialist_type=specialty,
+            )
+        ]
+
+        context = agent._build_session_context(
+            current_message=current_message,
+            session_id=sample_message.session_id,
+            history=history,
+        )
+
+        assert context["consultation_stage"] == "targeted_follow_up"
+        assert context["can_close_assessment"] is False
+        assert expected_missing in context["missing_clinical_items"]
+
+    @pytest.mark.parametrize(
+        ("specialty", "current_message"),
+        [
+            (
+                "medicina_general",
+                "Desde hace cuatro días tengo fiebre y dolor en la garganta, con mucho cansancio; me impide dormir y trabajo, y empezó tras contacto con mi hijo enfermo. Tomo paracetamol y no tengo alergias.",
+            ),
+            (
+                "cardiologia",
+                "Desde hace una semana tengo dolor opresivo en el pecho que se va al brazo izquierdo al hacer esfuerzo, con falta de aire, palpitaciones y mareo. Soy hipertenso, fumador y ya tuve un susto cardiaco previo con sudor frío.",
+            ),
+            (
+                "neurologia",
+                "Desde ayer tuve un inicio súbito de dolor de cabeza con visión borrosa, hormigueo y debilidad del brazo derecho, me costó hablar y casi me desmayo. Dormí poco y tuve un golpe hace una semana.",
+            ),
+            (
+                "pediatria",
+                "Mi niña de 2 años tiene fiebre y vómitos desde hace dos días. Bebe poco, moja menos pañales, está más decaída y respira rápido. Va a guardería y estuvo en contacto con otros niños resfriados; sus vacunas están al día.",
+            ),
+            (
+                "dermatologia",
+                "Desde hace una semana tengo una placa roja con costra en la cara que pica y a veces supura. Empezó tras usar una crema nueva, me salió además algo de fiebre y noto irritación en los labios.",
+            ),
+            (
+                "traumatologia",
+                "Ayer tuve una caída haciendo deporte y me torcí la rodilla izquierda. Está muy hinchada, con hematoma y algo de deformidad; no puedo apoyar bien, me cuesta doblarla y noto hormigueo hacia la pierna.",
+            ),
+            (
+                "psiquiatria",
+                "Desde hace dos meses tengo ansiedad y tristeza casi todos los días. Duermo muy mal, no rindo en el trabajo, he perdido apetito, tomo ansiolíticos de vez en cuando y he llegado a pensar en hacerme daño, aunque sin plan.",
+            ),
+            (
+                "ginecologia",
+                "Llevo tres semanas con picor vaginal intermitente, flujo blanco amarillento con mal olor y ardor al orinar, además de dolor pélvico leve. No tengo fiebre ni sangrado, mi última regla fue hace diez días y tuve relaciones; cambié de jabón íntimo.",
+            ),
+            (
+                "oncologia",
+                "Desde hace tres meses noto un bulto en la axila que ha crecido, con sangrado ocasional y pérdida de peso. Tengo cansancio, dolor que me impide dormir y antecedentes de quimioterapia por cáncer previo.",
+            ),
+        ],
+    )
+    def test_specialty_assessment_ready_when_checklist_complete(
+        self, mock_llm_service, sample_message, specialty, current_message
+    ):
+        """Test que todas las especialidades pueden pasar a assessment_ready con datos suficientes."""
+        agent = AgentFactory.create_agent(specialty, llm_service=mock_llm_service)
+        assert agent is not None
+
+        history = [
+            Message(
+                role="assistant",
+                content="Necesito hacerte unas preguntas clínicas.",
+                session_id=sample_message.session_id,
+                specialist_type=specialty,
+            )
+        ]
+
+        context = agent._build_session_context(
+            current_message=current_message,
+            session_id=sample_message.session_id,
+            history=history,
+        )
+
+        assert context["consultation_stage"] == "assessment_ready"
+        assert context["can_close_assessment"] is True
+        assert context["missing_clinical_items"] == []
+
     @pytest.mark.asyncio
     async def test_agent_initialization(self, mock_llm_service):
         """Test inicialización de agente."""
@@ -93,6 +236,95 @@ class TestBaseMedicalAgent:
         assert isinstance(response, str)
         assert len(response) > 0
         mock_llm_service.complete.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_agent_chat_with_image_attachment(self, mock_llm_service, sample_message):
+        """Test conversación multimodal con imagen adjunta."""
+        agent = CardiologyAgent(llm_service=mock_llm_service)
+        image_message = Message(
+            role="user",
+            content="Revisa esta imagen del problema",
+            session_id=sample_message.session_id,
+            metadata={
+                "attachments": [
+                    {
+                        "filename": "photo.jpg",
+                        "media_type": "image/jpeg",
+                        "data_url": "data:image/jpeg;base64,ZmFrZQ==",
+                    }
+                ]
+            },
+        )
+
+        await agent.chat(
+            message=image_message,
+            session_id=sample_message.session_id,
+            history=[image_message],
+            patient_context=None,
+        )
+
+        sent_messages = mock_llm_service.complete.await_args.args[0]
+        assert sent_messages[-1]["role"] == "user"
+        assert isinstance(sent_messages[-1]["content"], list)
+        assert sent_messages[-1]["content"][1]["type"] == "image_url"
+
+    def test_gynecology_follow_up_stage_requires_more_data(self, mock_llm_service, sample_message):
+        """Test que ginecología no cierre si faltan datos clínicos relevantes."""
+        agent = GynecologyAgent(llm_service=mock_llm_service)
+        history = [
+            Message(
+                role="assistant",
+                content="Necesito hacerte unas preguntas.",
+                session_id=sample_message.session_id,
+                specialist_type="ginecologia",
+            ),
+            Message(
+                role="user",
+                content="Me pica la vagina y tengo flujo amarillo con olor",
+                session_id=sample_message.session_id,
+            ),
+        ]
+
+        context = agent._build_session_context(
+            current_message="A veces me duele la pelvis",
+            session_id=sample_message.session_id,
+            history=history,
+        )
+
+        assert context["consultation_stage"] == "targeted_follow_up"
+        assert context["can_close_assessment"] is False
+        assert "embarazo, menstruación y relaciones/irritantes" in context["missing_clinical_items"]
+
+    @pytest.mark.asyncio
+    async def test_gynecology_appointment_request_avoids_fake_booking(
+        self, mock_llm_service, sample_message
+    ):
+        """Test que una petición de cita no simule reserva directa."""
+        agent = GynecologyAgent(llm_service=mock_llm_service)
+        history = [
+            Message(
+                role="user",
+                content="Me pica la vagina y tengo flujo blanco amarillo con mal olor",
+                session_id=sample_message.session_id,
+            ),
+            Message(
+                role="assistant",
+                content="Necesito algunas respuestas más.",
+                session_id=sample_message.session_id,
+                specialist_type="ginecologia",
+            ),
+        ]
+
+        response = await agent.chat(
+            message="Si quiero una cita",
+            session_id=sample_message.session_id,
+            history=history,
+            patient_context=None,
+        )
+
+        assert "no puede reservarla directamente" in response.lower()
+        assert "resumen para pedir la cita" in response.lower()
+        mock_llm_service.complete.assert_not_called()
 
 
 class TestTriageAgent:

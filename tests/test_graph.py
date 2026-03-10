@@ -4,8 +4,10 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
+from src.graph.medical_graph import route_after_triage
 from src.graph.nodes import (
     consensus_node,
+    emergency_response_node,
     fan_out_to_specialists,
     specialist_chat_node,
     specialist_evaluation_node,
@@ -109,6 +111,28 @@ class TestTriageNode:
         assert "needs_parallel_evaluation" in updates
 
     @pytest.mark.asyncio
+    @patch("src.graph.nodes.TriageAgent")
+    async def test_triage_node_urgent_summary(self, mock_triage_class, sample_state):
+        """Test que el triaje urgente prepara ruta de emergencia."""
+        mock_agent = AsyncMock()
+        mock_agent.evaluate = AsyncMock(
+            return_value={
+                "urgency": "urgente",
+                "main_symptoms": ["sangrado abundante"],
+                "recommended_specialties": ["ginecologia"],
+                "reasoning": "Caso de alarma ginecológica",
+                "summary": "⚠️ URGENTE\n\nHe detectado signos de alarma y voy a activar una orientación inmediata de urgencia.",
+            }
+        )
+        mock_triage_class.return_value = mock_agent
+
+        updates = await triage_node(sample_state)
+
+        assert updates["triage_data"]["urgency"] == "urgente"
+        assert updates["messages"][0].specialist_type == "triaje"
+        assert "urgencia" in updates["messages"][0].content.lower()
+
+    @pytest.mark.asyncio
     async def test_triage_node_no_messages(self):
         """Test nodo de triaje sin mensajes."""
         empty_state = create_initial_state(session_id=uuid4(), thread_id="test_thread")
@@ -147,6 +171,35 @@ class TestFanOutNode:
             assert hasattr(send, "arg")
             assert "specialty" in send.arg
             assert "state" in send.arg
+
+
+class TestEmergencyRouting:
+    """Tests para la ruta de emergencia."""
+
+    def test_route_after_triage_goes_to_emergency(self, sample_state):
+        """Test que una urgencia corta el flujo normal."""
+        sample_state["triage_data"] = {"urgency": "urgente"}
+        sample_state["needs_parallel_evaluation"] = True
+
+        route = route_after_triage(sample_state)
+
+        assert route == "emergency_response"
+
+    @pytest.mark.asyncio
+    async def test_emergency_response_node(self, sample_state):
+        """Test generación de respuesta de emergencia."""
+        sample_state["triage_data"] = {
+            "urgency": "urgente",
+            "main_symptoms": ["flujo vaginal purulento", "dolor pélvico intenso"],
+            "recommended_specialties": ["ginecologia"],
+        }
+
+        updates = await emergency_response_node(sample_state)
+
+        assert updates["needs_parallel_evaluation"] is False
+        assert updates["messages"][0].specialist_type == "emergencias"
+        assert "urgencias" in updates["messages"][0].content.lower()
+        assert updates["messages"][0].metadata["emergency_routing"] is True
 
 
 class TestSpecialistEvaluationNode:

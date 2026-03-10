@@ -114,9 +114,7 @@ class ConversationMemory:
         try:
             await self.db.save_message(message)
 
-            logger.info(
-                f"ℹ️ Mensaje guardado - " f"Sesión: {message.session_id}, " f"Rol: {message.role}"
-            )
+            logger.info(f"ℹ️ Mensaje guardado - Sesión: {message.session_id}, Rol: {message.role}")
 
             return True
 
@@ -138,7 +136,7 @@ class ConversationMemory:
         try:
             messages = await self.db.get_messages(session_id, limit)
 
-            logger.info(f"ℹ️ {len(messages)} mensajes recuperados - " f"Sesión: {session_id}")
+            logger.info(f"ℹ️ {len(messages)} mensajes recuperados - Sesión: {session_id}")
 
             return messages
 
@@ -239,11 +237,9 @@ class ConversationMemory:
             messages = await self.get_messages(session_id, limit=max_messages)
 
             # Formatear para API de OpenAI
-            formatted = [{"role": msg.role, "content": msg.content} for msg in messages]
+            formatted = [msg.to_langchain_format() for msg in messages]
 
-            logger.info(
-                f"ℹ️ {len(formatted)} mensajes formateados para LLM - " f"Sesión: {session_id}"
-            )
+            logger.info(f"ℹ️ {len(formatted)} mensajes formateados para LLM - Sesión: {session_id}")
 
             return formatted
 

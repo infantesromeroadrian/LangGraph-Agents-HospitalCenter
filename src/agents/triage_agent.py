@@ -52,7 +52,11 @@ IMPORTANTE:
 """
 
     async def evaluate(
-        self, message, session_id: Optional[UUID] = None, patient_context: Optional[str] = None
+        self,
+        message,
+        triage_analysis: Optional[dict] = None,
+        session_id: Optional[UUID] = None,
+        patient_context: Optional[str] = None,
     ) -> dict:
         """
         Analiza la consulta inicial del paciente.
@@ -65,10 +69,10 @@ IMPORTANTE:
         Returns:
             Análisis de triaje estructurado
         """
-        try:
-            # Extraer contenido del mensaje
-            patient_query = message.content if hasattr(message, "content") else str(message)
+        del triage_analysis
+        patient_query = message.content if hasattr(message, "content") else str(message)
 
+        try:
             logger.info(f"ℹ️ Triaje: Analizando consulta (sesión={session_id})")
 
             # ✅ NUEVO: Inyectar contexto del paciente en el prompt
@@ -86,6 +90,7 @@ IMPORTANTE:
 
             # Solicitar análisis en JSON
             analysis = await self.llm.complete_json(messages)
+            analysis = self._apply_triage_heuristics(patient_query, analysis)
 
             # Validar estructura básica
             self._validate_analysis(analysis)
@@ -95,16 +100,23 @@ IMPORTANTE:
             analysis["query_length"] = len(patient_query)
 
             # Crear resumen para el usuario
+            urgency = analysis.get("urgency", "consulta_general")
             urgency_text = {
                 "urgente": "⚠️ URGENTE",
                 "no_urgente": "ℹ️ No urgente",
                 "consulta_general": "💬 Consulta general",
-            }.get(analysis.get("urgency", "consulta_general"), "💬 Consulta general")
+            }.get(urgency, "💬 Consulta general")
 
-            analysis["summary"] = (
-                f"{urgency_text}\n\n"
-                f"He analizado tu consulta y voy a derivarla a nuestros especialistas para una evaluación detallada."
-            )
+            if urgency == "urgente":
+                analysis["summary"] = (
+                    f"{urgency_text}\n\n"
+                    "He detectado signos de alarma y voy a activar una orientación inmediata de urgencia."
+                )
+            else:
+                analysis["summary"] = (
+                    f"{urgency_text}\n\n"
+                    "He analizado tu consulta y voy a derivarla a nuestros especialistas para una evaluación detallada."
+                )
 
             logger.info(
                 f"ℹ️ Triaje: Análisis completado "
@@ -146,6 +158,30 @@ IMPORTANTE:
                 analysis["recommended_specialties"] = ["medicina_general"]
             if "reasoning" not in analysis:
                 analysis["reasoning"] = "Análisis incompleto"
+
+    def _apply_triage_heuristics(self, patient_query: str, analysis: dict) -> dict:
+        """Refuerza especialidades anatómicamente evidentes."""
+        normalized = patient_query.lower()
+        gynecology_terms = [
+            "vagina",
+            "vaginal",
+            "vulva",
+            "flujo",
+            "candidiasis",
+            "vaginosis",
+            "picor vaginal",
+            "prurito vaginal",
+        ]
+
+        if any(term in normalized for term in gynecology_terms):
+            recommended = [
+                spec
+                for spec in analysis.get("recommended_specialties", [])
+                if spec != "ginecologia"
+            ]
+            analysis["recommended_specialties"] = ["ginecologia", *recommended][:3]
+
+        return analysis
 
     def _get_default_analysis(self, _query: str) -> dict:
         """

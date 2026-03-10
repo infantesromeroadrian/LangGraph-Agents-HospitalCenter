@@ -11,6 +11,7 @@ from langgraph.graph import END, StateGraph
 from src.config.settings import settings
 from src.graph.nodes import (
     consensus_node,
+    emergency_response_node,
     specialist_chat_node,
     specialist_evaluation_node,
     triage_node,
@@ -36,6 +37,10 @@ def route_after_triage(state: MedicalGraphState):
     from langgraph.types import Send
 
     from src.agents.agent_factory import AgentFactory
+
+    if state.get("triage_data", {}).get("urgency", "").lower() == "urgente":
+        logger.warning("⚠️ [Router] -> Ruta de emergencia")
+        return "emergency_response"
 
     # Si necesita evaluación paralela y no hay especialista seleccionado
     if state["needs_parallel_evaluation"] and not state["selected_specialist"]:
@@ -90,6 +95,7 @@ async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
 
         # Agregar nodos
         workflow.add_node("triage", triage_node)
+        workflow.add_node("emergency_response", emergency_response_node)
         workflow.add_node("specialist_evaluation", specialist_evaluation_node)
         workflow.add_node("consensus", consensus_node)
         workflow.add_node("specialist_chat", specialist_chat_node)
@@ -106,6 +112,9 @@ async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
 
         # Consenso decide y va a chat
         workflow.add_edge("consensus", "specialist_chat")
+
+        # Emergencias finalizan el turno tras instrucciones inmediatas
+        workflow.add_edge("emergency_response", END)
 
         # After specialist chat, always end and wait for next user message
         # This prevents infinite recursion loops

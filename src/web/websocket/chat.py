@@ -6,11 +6,14 @@ con WebSocket nativo de FastAPI, resolviendo los conflictos de event loop
 con asyncpg y habilitando la persistencia de mensajes.
 """
 
+import base64
+import binascii
 import logging
 from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from src.config.settings import settings
 from src.graph.medical_graph import medical_graph_manager
 from src.graph.state import create_initial_state
 from src.memory.conversation_memory import conversation_memory
@@ -19,6 +22,9 @@ from src.services.database_service import db_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+ALLOWED_IMAGE_MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp"}
+DEFAULT_IMAGE_MESSAGE = "He adjuntado una imagen para valoración clínica."
 
 
 class ConnectionManager:
@@ -163,6 +169,62 @@ Verifica interacciones con la medicación actual.
         return {}, None
 
 
+def _normalize_image_attachments(raw_attachments: list[dict] | None) -> list[dict[str, str | int]]:
+    """Valida y normaliza adjuntos de imagen enviados por WebSocket."""
+    if not raw_attachments:
+        return []
+
+    if len(raw_attachments) > settings.MAX_IMAGE_ATTACHMENTS:
+        raise ValueError(
+            f"Solo se permiten hasta {settings.MAX_IMAGE_ATTACHMENTS} imágenes por consulta."
+        )
+
+    normalized: list[dict[str, str | int]] = []
+    max_size_bytes = settings.MAX_IMAGE_SIZE_MB * 1024 * 1024
+
+    for index, attachment in enumerate(raw_attachments, start=1):
+        if not isinstance(attachment, dict):
+            raise ValueError(f"Adjunto de imagen inválido en posición {index}.")
+
+        data_url = attachment.get("data_url")
+        media_type = attachment.get("media_type")
+        filename = attachment.get("filename") or f"image_{index}"
+
+        if not data_url or not isinstance(data_url, str) or "," not in data_url:
+            raise ValueError(f"La imagen {index} no tiene un data URL válido.")
+
+        if media_type not in ALLOWED_IMAGE_MEDIA_TYPES:
+            raise ValueError("Formato de imagen no soportado. Usa JPEG, PNG o WEBP.")
+
+        header, encoded = data_url.split(",", 1)
+        expected_prefix = f"data:{media_type};base64"
+        if not header.startswith(expected_prefix):
+            raise ValueError(f"La cabecera de la imagen {index} no coincide con su tipo MIME.")
+
+        try:
+            decoded = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError(f"La imagen {index} no tiene base64 válido.") from exc
+
+        size_bytes = len(decoded)
+        if size_bytes > max_size_bytes:
+            raise ValueError(
+                f"La imagen {index} supera el límite de {settings.MAX_IMAGE_SIZE_MB} MB."
+            )
+
+        normalized.append(
+            {
+                "type": "image",
+                "filename": str(filename),
+                "media_type": media_type,
+                "data_url": data_url,
+                "size_bytes": size_bytes,
+            }
+        )
+
+    return normalized
+
+
 @router.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     """
@@ -187,8 +249,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             # Recibir mensaje del cliente
             data = await websocket.receive_json()
 
-            message_content = data.get("message")
-            if not message_content:
+            message_content = (data.get("message") or "").strip()
+            attachments = data.get("attachments") or []
+            if not message_content and not attachments:
                 await manager.send_json(
                     session_id, {"type": "error", "message": "Message content required"}
                 )
@@ -198,7 +261,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
             # Procesar mensaje del usuario
             await process_user_message(
-                session_id=session_id, message_content=message_content, manager=manager
+                session_id=session_id,
+                message_content=message_content,
+                attachments=attachments,
+                manager=manager,
             )
 
     except WebSocketDisconnect:
@@ -217,7 +283,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             manager.disconnect(session_id)
 
 
-async def process_user_message(session_id: str, message_content: str, manager: ConnectionManager):
+async def process_user_message(
+    session_id: str,
+    message_content: str,
+    attachments: list[dict] | None,
+    manager: ConnectionManager,
+):
     """
     Procesa un mensaje del usuario y ejecuta el grafo médico.
 
@@ -237,8 +308,16 @@ async def process_user_message(session_id: str, message_content: str, manager: C
         5. Guardar mensajes de respuesta en DB
     """
     try:
+        normalized_attachments = _normalize_image_attachments(attachments)
+        normalized_message_content = message_content.strip() or DEFAULT_IMAGE_MESSAGE
+
         # Crear mensaje del usuario
-        user_message = Message(role="user", content=message_content, session_id=UUID(session_id))
+        user_message = Message(
+            role="user",
+            content=normalized_message_content,
+            session_id=UUID(session_id),
+            metadata={"attachments": normalized_attachments} if normalized_attachments else {},
+        )
 
         # ✅ GUARDAR MENSAJE - FUNCIONA PERFECTAMENTE CON FASTAPI
         await conversation_memory.add_message(user_message)
