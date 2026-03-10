@@ -33,6 +33,20 @@ class TestFastAPIMigration:
         assert response.status_code == 200
         assert b"LangGraph Medical Center" in response.content
 
+    def test_admission_route_redirects_to_root(self):
+        """El flujo legacy de admisión redirige al home unificado."""
+        response = client.get("/admission", follow_redirects=False)
+
+        assert response.status_code == 307
+        assert response.headers["location"] == "/"
+
+    def test_favicon_route_exists(self):
+        """El favicon ya no devuelve 404 en la carga inicial."""
+        response = client.get("/favicon.ico", follow_redirects=False)
+
+        assert response.status_code == 307
+        assert response.headers["location"] == "/static/favicon.svg"
+
     def test_metrics_endpoint(self):
         """Test que el endpoint de métricas funciona."""
         response = client.get("/metrics", headers={"X-Admin-Key": settings.get_admin_api_key()})

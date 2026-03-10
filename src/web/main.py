@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -125,7 +125,14 @@ async def admission_form(request: Request):
     Returns:
         Template HTML del formulario de admisión
     """
-    return templates.TemplateResponse("admission.html", {"request": request})
+    del request
+    return RedirectResponse(url="/", status_code=307)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> RedirectResponse:
+    """Redirige el favicon clásico al recurso estático SVG."""
+    return RedirectResponse(url="/static/favicon.svg", status_code=307)
 
 
 if __name__ == "__main__":

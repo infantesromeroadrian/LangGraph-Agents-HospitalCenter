@@ -105,6 +105,16 @@ class TestAuthRoutes:
 
         assert response.status_code == 401
 
+    def test_get_current_patient_returns_no_content_without_cookie(self):
+        """El bootstrap anónimo no expone error visible al no haber cookie."""
+        client.cookies.clear()
+        reset_rate_limits()
+
+        response = client.get("/api/patients/me")
+
+        assert response.status_code == 204
+        assert response.content == b""
+
     @patch("src.web.routers.patients.db_service.execute_query", new_callable=AsyncMock)
     def test_get_patient_allows_matching_cookie(self, mock_execute: AsyncMock):
         """Permite leer solo el MRN asociado a la cookie emitida."""
@@ -115,6 +125,22 @@ class TestAuthRoutes:
 
         response = client.get(
             f"/api/patients/{medical_record_number}",
+            cookies={PATIENT_AUTH_COOKIE_NAME: create_patient_access_token(medical_record_number)},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["medical_record_number"] == medical_record_number
+
+    @patch("src.web.routers.patients.db_service.execute_query", new_callable=AsyncMock)
+    def test_get_current_patient_uses_secure_cookie(self, mock_execute: AsyncMock):
+        """La UI puede recuperar el paciente actual sin exponer el MRN en la URL."""
+        client.cookies.clear()
+        reset_rate_limits()
+        medical_record_number = "HC-2026-000001"
+        mock_execute.side_effect = [[_build_patient_record(medical_record_number)], []]
+
+        response = client.get(
+            "/api/patients/me",
             cookies={PATIENT_AUTH_COOKIE_NAME: create_patient_access_token(medical_record_number)},
         )
 

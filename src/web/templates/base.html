@@ -18,6 +18,8 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <meta name="theme-color" content="#2E7D89">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -46,7 +48,7 @@
             </a>
 
             <!-- Botón responsive -->
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir navegación principal">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
@@ -55,7 +57,7 @@
                 <ul class="navbar-nav ms-auto align-items-center">
                     <!-- Botón de Emergencias (siempre visible) -->
                     <li class="nav-item me-3">
-                        <button class="btn btn-emergency" id="emergency-btn" title="Emergencia Médica">
+                        <button class="btn btn-emergency" id="emergency-btn" title="Activar protocolo de emergencia" aria-label="Activar protocolo de emergencia">
                             <i class="fas fa-ambulance me-2"></i>
                             <span class="d-none d-md-inline">Emergencia</span>
                         </button>
@@ -63,17 +65,17 @@
 
                     <!-- Estado de conexión -->
                     <li class="nav-item me-3">
-                        <div class="connection-status-badge" id="connection-status">
+                        <div class="connection-status-badge status-idle" id="connection-status" role="status" aria-live="polite" aria-atomic="true">
                             <i class="fas fa-circle pulse-dot"></i>
-                            <span class="d-none d-lg-inline ms-2">Sistema Activo</span>
+                            <span class="d-none d-lg-inline ms-2">Pendiente de admisión</span>
                         </div>
                     </li>
 
                     <!-- Información del paciente (se llenará con JS) -->
                     <li class="nav-item">
-                        <div class="patient-info-badge" id="patient-badge" style="display: none;">
+                        <div class="patient-info-badge" id="patient-badge" style="display: none;" role="status" aria-live="polite" aria-atomic="true">
                             <i class="fas fa-user-circle me-2"></i>
-                            <span id="patient-name">Paciente</span>
+                            <span id="patient-name">Paciente verificado</span>
                         </div>
                     </li>
                 </ul>

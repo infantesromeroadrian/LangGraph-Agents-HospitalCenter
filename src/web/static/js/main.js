@@ -11,37 +11,78 @@ let sessionId = null;
 let threadId = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
-let currentPatient = null; // ✅ NUEVO: Almacena datos del paciente actual
+let currentPatient = null;
 let pendingImageAttachments = [];
 const DEFAULT_IMAGE_MESSAGE = 'He adjuntado una imagen para valoración clínica.';
+let admissionFormInitialized = false;
+let uiEventListenersInitialized = false;
+const DEBUG_UI = false;
+
+function debugLog(...args) {
+    if (DEBUG_UI) {
+        console.log(...args);
+    }
+}
+
+function debugWarn(...args) {
+    if (DEBUG_UI) {
+        console.warn(...args);
+    }
+}
+
+const CONNECTION_STATES = {
+    idle: {
+        label: 'Pendiente de admisión',
+        iconClass: 'text-warning',
+        detail: 'Completa la admisión para iniciar la consulta.'
+    },
+    connecting: {
+        label: 'Preparando sesión segura',
+        iconClass: 'text-warning pulse-dot',
+        detail: 'Estamos creando tu sesión clínica y verificando la conexión.'
+    },
+    connected: {
+        label: 'Consulta conectada',
+        iconClass: 'text-success pulse-dot',
+        detail: 'La conversación está activa y lista para recibir mensajes.'
+    },
+    reconnecting: {
+        label: 'Reconectando',
+        iconClass: 'text-warning pulse-dot',
+        detail: 'Estamos restaurando la conexión sin perder el contexto.'
+    },
+    disconnected: {
+        label: 'Conexión interrumpida',
+        iconClass: 'text-danger',
+        detail: 'No se pudo mantener la conexión. Puedes reintentar en unos segundos.'
+    },
+    auth: {
+        label: 'Sesión expirada',
+        iconClass: 'text-danger',
+        detail: 'Necesitamos verificar de nuevo tu acceso para continuar.'
+    },
+    error: {
+        label: 'Atención requerida',
+        iconClass: 'text-danger',
+        detail: 'Se ha producido un error. Revisa el aviso mostrado en pantalla.'
+    }
+};
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 Initializing Medical System (FastAPI)...');
+    debugLog('🚀 Initializing Medical System (FastAPI)...');
+    updateConnectionStatus('idle');
+    setupAdmissionFormHandler();
+    setupEventListeners();
+    initializeEmergencyButton();
 
-    // ✅ PASO 1: VERIFICAR SI EXISTE PACIENTE REGISTRADO (ANTES DE TODO)
-    const medicalRecordNumber = localStorage.getItem('medical_record_number');
-
-    if (!medicalRecordNumber) {
-        // No hay paciente → Mostrar modal de admisión (ANTESALA)
-        console.log('📋 No patient found - showing admission modal');
-        showAdmissionModal();
-        return; // ⚠️ DETENER inicialización hasta que se complete el registro
-    }
-
-    // ✅ PASO 2: PACIENTE EXISTE → Cargar datos desde PostgreSQL
-    console.log('📋 Patient found in localStorage:', medicalRecordNumber);
-    const patientLoaded = await loadPatientData(medicalRecordNumber);
+    const patientLoaded = await loadCurrentPatient();
 
     if (!patientLoaded) {
-        // Paciente no encontrado en BD → Re-registrar
-        console.warn('⚠️ Patient not found in database - re-registration required');
-        localStorage.removeItem('medical_record_number');
-        showAdmissionModal();
+        showAdmissionModal('Completa tu admisión para iniciar una consulta segura.');
         return;
     }
 
-    // ✅ PASO 3: Continuar inicialización normal (SOLO si paciente está cargado)
     await initializeSystemWithPatient();
 });
 
@@ -49,10 +90,15 @@ document.addEventListener('DOMContentLoaded', async function() {
  * ✅ NUEVO: Inicializa el sistema CON datos del paciente cargados
  */
 async function initializeSystemWithPatient() {
-    console.log('✅ Initializing system with patient context:', currentPatient.medical_record_number);
+    debugLog('✅ Initializing system with verified patient context');
+    clearFeedbackMessage();
+    updateConnectionStatus('connecting');
 
     // Create new session (asociada al paciente)
-    await createSession();
+    const sessionCreated = await createSession();
+    if (!sessionCreated) {
+        return;
+    }
 
     // Initialize WebSocket connection
     initializeWebSocket();
@@ -67,26 +113,24 @@ async function initializeSystemWithPatient() {
         initializeGraphVisualization();
     }
 
-    // Setup event listeners
-    setupEventListeners();
-
-    // Setup admission form handler
-    setupAdmissionFormHandler();
-
-    console.log('✅ System initialized with patient data');
+    debugLog('✅ System initialized with patient data');
 }
 
 /**
- * ✅ NUEVO: Cargar datos del paciente desde la API
+ * Carga el paciente actual a partir de la cookie segura.
  */
-async function loadPatientData(medicalRecordNumber) {
+async function loadCurrentPatient() {
     try {
-        console.log('📡 Fetching patient data from API:', medicalRecordNumber);
+        debugLog('📡 Fetching current patient data from API');
 
-        const response = await fetch(`/api/patients/${medicalRecordNumber}`);
+        const response = await fetch('/api/patients/me');
+
+        if (response.status === 204) {
+            return false;
+        }
 
         if (!response.ok) {
-            console.warn('❌ Patient not found in database (HTTP', response.status, ')');
+            debugWarn('❌ Current patient lookup failed (HTTP', response.status, ')');
             return false;
         }
 
@@ -96,17 +140,14 @@ async function loadPatientData(medicalRecordNumber) {
         currentPatient = patient;
         window.currentPatient = patient; // Para acceso desde otros scripts
 
-        // Actualizar UI con nombre del paciente
+        // Actualizar UI con datos minimizados del paciente
         updatePatientBadge(patient);
-
-        console.log('✅ Patient loaded:', patient.full_name, '(HC:', patient.medical_record_number + ')');
-        console.log('   - Alergias:', patient.allergies);
-        console.log('   - Medicación:', patient.medications);
+        updateConnectionStatus('idle', 'Paciente verificado. Estamos listos para abrir una nueva consulta.');
 
         return true;
 
     } catch (error) {
-        console.error('❌ Error loading patient data:', error);
+        console.error('❌ Error loading current patient data:', error);
         return false;
     }
 }
@@ -114,7 +155,7 @@ async function loadPatientData(medicalRecordNumber) {
 /**
  * ✅ NUEVO: Mostrar modal de admisión (no se puede cerrar sin completar)
  */
-function showAdmissionModal() {
+function showAdmissionModal(message) {
     const modalElement = document.getElementById('admissionModal');
 
     if (!modalElement) {
@@ -122,8 +163,12 @@ function showAdmissionModal() {
         return;
     }
 
-    // Configurar el handler del formulario ANTES de mostrar el modal
     setupAdmissionFormHandler();
+    resetAdmissionFormState();
+
+    if (message) {
+        showAdmissionFeedback(message, 'info');
+    }
 
     const modal = new bootstrap.Modal(modalElement, {
         backdrop: 'static',  // No cerrar al hacer click fuera
@@ -132,7 +177,107 @@ function showAdmissionModal() {
 
     modal.show();
 
-    console.log('📋 Admission modal displayed - registration required before access');
+    debugLog('📋 Admission modal displayed - registration required before access');
+}
+
+function resetAdmissionFormState() {
+    const form = document.getElementById('admission-form');
+    const processingIndicator = document.getElementById('admission-processing');
+    const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+    clearAdmissionFeedback();
+    clearAdmissionValidation();
+
+    if (processingIndicator) {
+        processingIndicator.style.display = 'none';
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = false;
+    }
+}
+
+function showAdmissionFeedback(message, tone = 'danger') {
+    const feedback = document.getElementById('admission-feedback');
+    if (!feedback) return;
+
+    feedback.className = `alert alert-${tone}`;
+    feedback.classList.remove('d-none');
+    feedback.innerHTML = `<i class="fas fa-circle-info me-2"></i>${escapeHtml(message)}`;
+}
+
+function clearAdmissionFeedback() {
+    const feedback = document.getElementById('admission-feedback');
+    if (!feedback) return;
+
+    feedback.className = 'alert alert-danger d-none';
+    feedback.innerHTML = '';
+}
+
+function clearAdmissionValidation() {
+    const form = document.getElementById('admission-form');
+    if (!form) return;
+
+    form.querySelectorAll('.is-invalid').forEach((field) => field.classList.remove('is-invalid'));
+    const consentError = document.getElementById('consent-error');
+    if (consentError) {
+        consentError.style.display = 'none';
+    }
+}
+
+function markAdmissionFieldInvalid(fieldId, message, options = {}) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+
+    field.classList.add('is-invalid');
+    if (fieldId === 'consent') {
+        const consentError = document.getElementById('consent-error');
+        if (consentError) {
+            consentError.textContent = message;
+            consentError.style.display = 'block';
+        }
+    } else if (options.feedbackSelector) {
+        const feedback = field.parentElement && field.parentElement.querySelector(options.feedbackSelector);
+        if (feedback) {
+            feedback.textContent = message;
+        }
+    }
+}
+
+function validateAdmissionForm() {
+    clearAdmissionValidation();
+
+    const fullName = document.getElementById('full-name');
+    const age = document.getElementById('age');
+    const gender = document.getElementById('gender');
+    const consent = document.getElementById('consent');
+
+    if (!fullName || !fullName.value.trim()) {
+        markAdmissionFieldInvalid('full-name', 'Indica tu nombre completo.', { feedbackSelector: '.invalid-feedback' });
+        fullName && fullName.focus();
+        return { valid: false, message: 'Necesitamos tu nombre completo para abrir la consulta.' };
+    }
+
+    const numericAge = age ? parseInt(age.value, 10) : NaN;
+    if (!age || Number.isNaN(numericAge) || numericAge < 0 || numericAge > 120) {
+        markAdmissionFieldInvalid('age', 'Indica una edad válida entre 0 y 120 años.', { feedbackSelector: '.invalid-feedback' });
+        age && age.focus();
+        return { valid: false, message: 'Revisa la edad indicada antes de continuar.' };
+    }
+
+    if (!gender || !gender.value) {
+        markAdmissionFieldInvalid('gender', 'Selecciona una opción para continuar.', { feedbackSelector: '.invalid-feedback' });
+        gender && gender.focus();
+        return { valid: false, message: 'Selecciona tu género o la opción de preferencia.' };
+    }
+
+    if (!consent || !consent.checked) {
+        markAdmissionFieldInvalid('consent', 'Debes aceptar el consentimiento informado para continuar.');
+        consent && consent.focus();
+        return { valid: false, message: 'Debes aceptar el consentimiento informado para iniciar la consulta.' };
+    }
+
+    return { valid: true };
 }
 
 /**
@@ -142,31 +287,34 @@ function setupAdmissionFormHandler() {
     const form = document.getElementById('admission-form');
 
     if (!form) {
-        console.warn('⚠️ Admission form not found');
+        debugWarn('⚠️ Admission form not found');
         return;
     }
+
+    if (admissionFormInitialized) {
+        return;
+    }
+
+    admissionFormInitialized = true;
 
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
 
-        console.log('📤 Submitting admission form...');
+        debugLog('📤 Submitting admission form...');
 
-        // Validar campos requeridos
-        const fullName = document.getElementById('full-name').value.trim();
-        const age = parseInt(document.getElementById('age').value);
-        const gender = document.getElementById('gender').value;
-        const consent = document.getElementById('consent').checked;
-
-        if (!fullName || !age || !gender || !consent) {
-            alert('Por favor, completa todos los campos obligatorios y acepta el consentimiento.');
+        const validation = validateAdmissionForm();
+        if (!validation.valid) {
+            showAdmissionFeedback(validation.message);
             return;
         }
 
+        clearAdmissionFeedback();
+
         // Preparar datos del paciente
         const patientData = {
-            full_name: fullName,
-            age: age,
-            gender: gender,
+            full_name: document.getElementById('full-name').value.trim(),
+            age: parseInt(document.getElementById('age').value, 10),
+            gender: document.getElementById('gender').value,
             dni: document.getElementById('dni').value.trim() || null,
             email: document.getElementById('email').value.trim() || null,
             phone: document.getElementById('phone').value.trim() || null,
@@ -200,7 +348,7 @@ function setupAdmissionFormHandler() {
         }
     });
 
-    console.log('✅ Admission form handler configured');
+    debugLog('✅ Admission form handler configured');
 }
 
 /**
@@ -208,7 +356,7 @@ function setupAdmissionFormHandler() {
  */
 async function submitAdmissionForm(patientData) {
     try {
-        console.log('📡 Sending patient data to API:', patientData);
+        debugLog('📡 Sending patient data to API');
 
         const response = await fetch('/api/patients', {
             method: 'POST',
@@ -225,11 +373,6 @@ async function submitAdmissionForm(patientData) {
 
         const patient = await response.json();
 
-        console.log('✅ Patient created successfully:', patient.medical_record_number);
-
-        // Guardar en localStorage (solo el ID, no todos los datos)
-        localStorage.setItem('medical_record_number', patient.medical_record_number);
-
         // Almacenar globalmente
         currentPatient = patient;
         window.currentPatient = patient;
@@ -238,15 +381,31 @@ async function submitAdmissionForm(patientData) {
         updatePatientBadge(patient);
 
         // Mostrar confirmación
-        showSuccessMessage(`¡Bienvenido/a, ${patient.full_name}! Tu historia clínica es: ${patient.medical_record_number}`);
+        showSuccessMessage('Admisión completada. Ya puedes iniciar tu consulta médica.');
 
         return true;
 
     } catch (error) {
         console.error('❌ Error submitting admission form:', error);
-        alert('Error al registrar paciente: ' + error.message);
+        showAdmissionFeedback(error.message || 'No se pudo completar la admisión. Revisa los datos e inténtalo de nuevo.');
         return false;
     }
+}
+
+function getPatientShortName(fullName) {
+    if (!fullName) return 'Paciente verificado';
+
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return 'Paciente verificado';
+
+    return parts[0];
+}
+
+function maskMedicalRecordNumber(medicalRecordNumber) {
+    if (!medicalRecordNumber) return 'Pendiente';
+
+    const visibleTail = medicalRecordNumber.slice(-4);
+    return `HC •••• ${visibleTail}`;
 }
 
 /**
@@ -255,23 +414,24 @@ async function submitAdmissionForm(patientData) {
 function updatePatientBadge(patient) {
     // Buscar el badge en el header (definido en base.html)
     const badge = document.getElementById('patient-badge');
+    const hasVerifiedPatient = Boolean(patient && patient.full_name && patient.medical_record_number);
 
     if (badge) {
-        badge.style.display = 'inline-block';
+        badge.style.display = hasVerifiedPatient ? 'inline-block' : 'none';
 
         const nameElement = badge.querySelector('#patient-name');
-        if (nameElement) {
-            nameElement.textContent = patient.full_name;
+        if (nameElement && hasVerifiedPatient) {
+            nameElement.textContent = `Paciente verificado: ${getPatientShortName(patient.full_name)}`;
         }
-
-        console.log('✅ Patient badge updated:', patient.full_name);
     }
 
     // También actualizar el modal de sesión si existe
     const modalPatientName = document.getElementById('modal-patient-name');
     if (modalPatientName) {
-        modalPatientName.textContent = `${patient.full_name} (${patient.medical_record_number})`;
-        modalPatientName.className = 'text-success fw-bold';
+        modalPatientName.textContent = hasVerifiedPatient
+            ? `${getPatientShortName(patient.full_name)} · ${maskMedicalRecordNumber(patient.medical_record_number)}`
+            : 'Perfil pendiente de verificación';
+        modalPatientName.className = hasVerifiedPatient ? 'text-success fw-bold' : 'text-muted';
     }
 
     // ✅ NUEVO: Actualizar panel de información del paciente (sidebar)
@@ -279,11 +439,13 @@ function updatePatientBadge(patient) {
     const nameDisplay = document.getElementById('name-display');
 
     if (hcDisplay) {
-        hcDisplay.textContent = patient.medical_record_number;
+        hcDisplay.textContent = hasVerifiedPatient
+            ? maskMedicalRecordNumber(patient.medical_record_number)
+            : 'Pendiente';
     }
 
     if (nameDisplay) {
-        nameDisplay.textContent = patient.full_name;
+        nameDisplay.textContent = hasVerifiedPatient ? getPatientShortName(patient.full_name) : 'Sin verificar';
     }
 }
 
@@ -291,22 +453,41 @@ function updatePatientBadge(patient) {
  * ✅ NUEVO: Mostrar mensaje de éxito
  */
 function showSuccessMessage(message) {
+    showFeedbackMessage(message, 'success');
+}
+
+function showFeedbackMessage(message, tone = 'danger', options = {}) {
+    const { persist = false } = options;
+    const region = document.getElementById('chat-feedback-region');
+
+    if (!region) {
+        return;
+    }
+
     const alert = document.createElement('div');
-    alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
-    alert.style.zIndex = '9999';
-    alert.setAttribute('role', 'alert');
+    alert.className = `alert alert-${tone} alert-dismissible fade show`;
+    alert.setAttribute('role', tone === 'success' ? 'status' : 'alert');
     alert.innerHTML = `
-        <i class="fas fa-check-circle me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <i class="fas ${tone === 'success' ? 'fa-check-circle' : 'fa-circle-exclamation'} me-2"></i>
+        ${escapeHtml(message)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar aviso"></button>
     `;
 
-    document.body.appendChild(alert);
+    region.innerHTML = '';
+    region.appendChild(alert);
 
-    // Auto-dismiss después de 5 segundos
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
+    if (!persist) {
+        window.setTimeout(() => {
+            alert.remove();
+        }, 6000);
+    }
+}
+
+function clearFeedbackMessage() {
+    const region = document.getElementById('chat-feedback-region');
+    if (region) {
+        region.innerHTML = '';
+    }
 }
 
 /**
@@ -324,15 +505,17 @@ function initializeWebSocket() {
     const host = window.location.host;
     const wsUrl = `${protocol}//${host}/ws/${sessionId}`;
 
-    console.log(`📡 Connecting to WebSocket: ${wsUrl}`);
+    debugLog(`📡 Connecting to WebSocket: ${wsUrl}`);
 
     try {
         ws = new WebSocket(wsUrl);
 
         // Connection opened
         ws.onopen = function(event) {
-            console.log('✅ WebSocket connected');
-            updateConnectionStatus(true);
+            void event;
+            debugLog('✅ WebSocket connected');
+            clearFeedbackMessage();
+            updateConnectionStatus('connected');
             reconnectAttempts = 0;
         };
 
@@ -348,33 +531,42 @@ function initializeWebSocket() {
 
         // Connection closed
         ws.onclose = function(event) {
-            console.log('❌ WebSocket disconnected');
-            updateConnectionStatus(false);
+            debugLog('❌ WebSocket disconnected');
+
+            if (event.code === 4401 || event.code === 4403) {
+                handleSessionExpired('Tu sesión segura ha expirado o ya no está autorizada. Completa la admisión de nuevo para continuar.');
+                return;
+            }
 
             // Attempt reconnection
             if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
                 reconnectAttempts++;
                 const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
+                updateConnectionStatus(
+                    'reconnecting',
+                    `Intentando recuperar la conexión (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`
+                );
 
-                console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+                debugLog(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
 
                 setTimeout(function() {
                     initializeWebSocket();
                 }, delay);
             } else {
-                showError('Connection lost. Please reload the page.');
+                updateConnectionStatus('disconnected');
+                showError('Se perdió la conexión clínica. Recarga la página para volver a intentarlo.');
             }
         };
 
         // Connection error
         ws.onerror = function(error) {
             console.error('❌ WebSocket error:', error);
-            updateConnectionStatus(false);
+            updateConnectionStatus('error', 'No pudimos estabilizar la conexión en tiempo real.');
         };
 
     } catch (error) {
         console.error('❌ Error creating WebSocket:', error);
-        showError('Failed to establish WebSocket connection');
+        showError('No se pudo establecer la conexión en tiempo real.', { affectsConnection: true });
     }
 }
 
@@ -383,7 +575,7 @@ function initializeWebSocket() {
  * ✅ NUEVO: Reemplaza los event handlers de Socket.IO
  */
 function handleWebSocketMessage(data) {
-    console.log('📨 WebSocket message received:', data);
+    debugLog('📨 WebSocket message received:', data);
 
     switch (data.type) {
         case 'thinking':
@@ -403,7 +595,7 @@ function handleWebSocketMessage(data) {
             break;
 
         default:
-            console.warn('⚠️ Unknown message type:', data.type);
+            debugWarn('⚠️ Unknown message type:', data.type);
     }
 }
 
@@ -411,7 +603,7 @@ function handleWebSocketMessage(data) {
  * Handle "thinking" event (agent is processing)
  */
 function handleThinking(data) {
-    console.log('🤔 Agent thinking:', data.agent_name);
+    debugLog('🤔 Agent thinking:', data.agent_name);
 
     // Show thinking indicator
     const agentName = data.agent_name || 'Sistema';
@@ -422,7 +614,7 @@ function handleThinking(data) {
  * Handle graph update event
  */
 function handleGraphUpdate(data) {
-    console.log('📊 Graph update:', data);
+    debugLog('📊 Graph update:', data);
 
     // Update graph visualization
     if (typeof highlightActiveNode === 'function' && data.node) {
@@ -445,7 +637,7 @@ function handleGraphUpdate(data) {
  * Handle agent response event
  */
 function handleAgentResponse(data) {
-    console.log('💬 Agent response:', data);
+    debugLog('💬 Agent response:', data);
 
     // Hide thinking indicator
     hideThinkingIndicator();
@@ -469,7 +661,11 @@ function handleAgentResponse(data) {
  */
 function handleError(data) {
     console.error('❌ Server error:', data.message);
-    showError(data.message || 'An error occurred');
+    if (data.retry_after) {
+        showError(`${data.message} Puedes volver a intentarlo en ${data.retry_after} segundos.`);
+    } else {
+        showError(data.message || 'Se ha producido un error en la consulta.');
+    }
     hideThinkingIndicator();
 }
 
@@ -488,6 +684,8 @@ function showThinkingIndicator(agentName) {
     const indicator = document.createElement('div');
     indicator.id = 'thinking-indicator';
     indicator.className = 'message assistant-message mb-3';
+    indicator.setAttribute('role', 'status');
+    indicator.setAttribute('aria-live', 'polite');
     indicator.innerHTML = `
         <div class="message-content">
             <div class="d-flex align-items-center">
@@ -532,11 +730,11 @@ function addMessageToChat(message) {
 
     messageEl.innerHTML = `
         <div class="message-header">
-            <strong>${specialistName}</strong>
+            <strong>${escapeHtml(specialistName)}</strong>
             <small class="text-muted ms-2">${timestamp}</small>
         </div>
         <div class="message-content">
-            ${message.content}
+            ${escapeHtml(message.content || '').replace(/\n/g, '<br>')}
         </div>
         ${attachmentsHtml}
     `;
@@ -551,15 +749,9 @@ function addMessageToChat(message) {
  */
 async function createSession() {
     try {
-        // ✅ NUEVO: Incluir medical_record_number si el paciente está cargado
         const requestBody = {
             patient_info: {}
         };
-
-        if (currentPatient && currentPatient.medical_record_number) {
-            requestBody.medical_record_number = currentPatient.medical_record_number;
-            console.log('📋 Creating session for patient:', currentPatient.medical_record_number);
-        }
 
         const response = await fetch('/api/sessions', {
             method: 'POST',
@@ -569,28 +761,36 @@ async function createSession() {
             body: JSON.stringify(requestBody)
         });
 
+        if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+                handleSessionExpired('Tu sesión verificada ya no es válida. Completa la admisión de nuevo para continuar.');
+                return false;
+            }
+
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'No se pudo crear la sesión clínica.');
+        }
+
         const data = await response.json();
 
         if (data.success) {
             sessionId = data.session_id;
             threadId = data.thread_id;
 
-            console.log('✅ Session created:', sessionId);
-
-            if (currentPatient) {
-                console.log('   - Associated with patient:', currentPatient.full_name);
-            }
+            debugLog('✅ Session created:', sessionId);
 
             // Update UI
             updateSessionInfo();
+            return true;
 
         } else {
-            throw new Error(data.error);
+            throw new Error(data.error || 'No se pudo crear la sesión clínica.');
         }
 
     } catch (error) {
         console.error('❌ Error creating session:', error);
-        showError('Failed to create session');
+        showError('No se pudo abrir la sesión clínica. Inténtalo de nuevo en unos instantes.', { affectsConnection: true });
+        return false;
     }
 }
 
@@ -606,14 +806,14 @@ function sendMessage() {
     if (!message && !pendingImageAttachments.length) return;
 
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-        showError('WebSocket not connected. Please wait or reload the page.');
+        showError('La conexión clínica todavía no está lista. Espera un momento o recarga la página.');
         return;
     }
 
     const outboundMessage = message || DEFAULT_IMAGE_MESSAGE;
     const attachmentsToSend = pendingImageAttachments.map((attachment) => ({ ...attachment }));
 
-    console.log('📤 Sending message:', outboundMessage, 'attachments:', attachmentsToSend.length);
+    debugLog('📤 Sending message:', outboundMessage, 'attachments:', attachmentsToSend.length);
 
     // Display user message immediately
     addMessageToChat({
@@ -636,23 +836,39 @@ function sendMessage() {
 
     } catch (error) {
         console.error('❌ Error sending message:', error);
-        showError('Failed to send message');
+        showError('No se pudo enviar tu mensaje. Inténtalo de nuevo.');
     }
 }
 
 /**
  * Update connection status indicator
  */
-function updateConnectionStatus(connected) {
+function updateConnectionStatus(state, detail) {
     const statusEl = document.getElementById('connection-status');
+    const statusNote = document.getElementById('consultation-status-note');
+    const config = CONNECTION_STATES[state] || CONNECTION_STATES.error;
 
     if (statusEl) {
-        if (connected) {
-            statusEl.innerHTML = '<i class="fas fa-circle text-success"></i> Connected';
-        } else {
-            statusEl.innerHTML = '<i class="fas fa-circle text-danger"></i> Disconnected';
-        }
+        statusEl.className = `connection-status-badge status-${state}`;
+        statusEl.innerHTML = `<i class="fas fa-circle ${config.iconClass}"></i><span class="d-none d-lg-inline ms-2">${config.label}</span>`;
     }
+
+    if (statusNote) {
+        statusNote.textContent = detail || config.detail;
+    }
+}
+
+function handleSessionExpired(message) {
+    ws = null;
+    sessionId = null;
+    threadId = null;
+    currentPatient = null;
+    window.currentPatient = null;
+
+    updatePatientBadge({ full_name: '', medical_record_number: '' });
+    updateConnectionStatus('auth', message);
+    showError(message);
+    showAdmissionModal('Necesitamos verificar de nuevo tu perfil antes de continuar con la consulta.');
 }
 
 /**
@@ -670,6 +886,12 @@ function updateSessionInfo() {
  * Setup global event listeners
  */
 function setupEventListeners() {
+    if (uiEventListenersInitialized) {
+        return;
+    }
+
+    uiEventListenersInitialized = true;
+
     // Enter key in message input
     const messageInput = document.getElementById('message-input');
 
@@ -780,27 +1002,11 @@ function removePendingImage(index) {
 /**
  * Show error message
  */
-function showError(message) {
-    // Create alert element
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-danger alert-dismissible fade show';
-    alert.setAttribute('role', 'alert');
-    alert.innerHTML = `
-        <i class="fas fa-exclamation-circle me-2"></i>
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-
-    // Insert at top of chat messages
-    const chatMessages = document.getElementById('chat-messages');
-
-    if (chatMessages) {
-        chatMessages.insertBefore(alert, chatMessages.firstChild);
-
-        // Auto-dismiss after 5 seconds
-        setTimeout(function() {
-            alert.remove();
-        }, 5000);
+function showError(message, options = {}) {
+    const { affectsConnection = false } = options;
+    showFeedbackMessage(message, 'danger', { persist: true });
+    if (affectsConnection) {
+        updateConnectionStatus('error', message);
     }
 }
 
@@ -913,6 +1119,7 @@ function renderInlineAttachments(attachments) {
  */
 function updateActiveSpecialist(nodeName) {
     const specialistStatusEl = document.getElementById('specialist-status');
+    const statusNote = document.getElementById('consultation-status-note');
 
     if (!specialistStatusEl) return;
 
@@ -921,6 +1128,7 @@ function updateActiveSpecialist(nodeName) {
     let specialistIcon = 'fa-user-md';
     let statusText = 'Listo para atenderte';
     let statusIcon = 'fa-circle text-success';
+    let detailText = 'Estamos listos para recibir la siguiente actualización clínica.';
 
     if (nodeName) {
         const normalized = nodeName.toLowerCase().replace(/_/g, '_');
@@ -928,12 +1136,24 @@ function updateActiveSpecialist(nodeName) {
         specialistIcon = getSpecialistIcon(normalized);
         statusText = 'Analizando tu caso...';
         statusIcon = 'fa-circle text-warning pulse-dot';
+
+        if (normalized.includes('emerg')) {
+            detailText = 'Protocolo urgente activo. Si existe peligro inmediato, llama al 911 sin esperar la respuesta del chat.';
+        } else if (normalized.includes('triage')) {
+            detailText = 'El sistema de triaje está clasificando la urgencia y el especialista más adecuado.';
+        } else {
+            detailText = 'El especialista está revisando tu caso con el contexto clínico disponible.';
+        }
     }
 
     specialistStatusEl.innerHTML = `
         <i class="fas ${statusIcon} me-1"></i>
         <span>${specialistName} - ${statusText}</span>
     `;
+
+    if (statusNote) {
+        statusNote.textContent = detailText;
+    }
 }
 
 /**
@@ -994,35 +1214,23 @@ function initializeEmergencyButton() {
     const emergencyBtn = document.getElementById('emergency-btn');
 
     if (emergencyBtn) {
+        if (emergencyBtn.dataset.bound === 'true') {
+            return;
+        }
+
+        emergencyBtn.dataset.bound = 'true';
         emergencyBtn.addEventListener('click', function() {
             activateEmergencyMode();
         });
-        console.log('✅ Emergency button initialized');
+        debugLog('✅ Emergency button initialized');
     }
 }
 
 function activateEmergencyMode() {
-    // Mostrar modal de emergencia
+    updateConnectionStatus('connected', 'Has activado el protocolo de orientación urgente. Si hay riesgo vital, llama al 911 ahora mismo.');
     showEmergencyModal();
 
-    // Enviar mensaje de emergencia al sistema
-    const emergencyMessage = "🚨 MODO EMERGENCIA ACTIVADO - Requiero atención médica urgente inmediata";
-
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-            type: 'emergency',
-            message: emergencyMessage,
-            priority: 'CRITICAL'
-        }));
-    }
-
-    // Scroll al chat para ver respuesta
-    const chatMessages = document.getElementById('chat-messages');
-    if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
-    console.log('🚨 Emergency mode activated');
+    debugLog('🚨 Emergency mode activated');
 }
 
 function showEmergencyModal() {
@@ -1046,27 +1254,33 @@ function showEmergencyModal() {
                     <div class="modal-body">
                         <div class="alert alert-danger mb-3">
                             <h6><i class="fas fa-phone-alt me-2"></i>Si es una emergencia REAL, llama al 911</h6>
-                            <p class="mb-0">Este sistema proporciona orientación médica, pero NO sustituye atención de emergencia.</p>
+                            <p class="mb-0">Este sistema solo puede ofrecer orientación inicial y no sustituye una ambulancia, una guardia ni un servicio de emergencias.</p>
                         </div>
 
-                        <h6 class="mb-3">Tu consulta tiene máxima prioridad:</h6>
+                        <h6 class="mb-3">Activa este protocolo si presentas señales como:</h6>
                         <ul class="mb-3">
-                            <li>✅ Todos los especialistas están alerta</li>
-                            <li>✅ Tiempo de respuesta: &lt;30 segundos</li>
-                            <li>✅ Evaluación acelerada activada</li>
+                            <li>Dolor de pecho intenso o dificultad respiratoria severa</li>
+                            <li>Pérdida de conciencia, desorientación o debilidad repentina</li>
+                            <li>Sangrado abundante, convulsiones o reacción alérgica grave</li>
                         </ul>
+
+                        <div id="emergency-feedback" class="alert alert-danger d-none" role="alert" aria-live="assertive" aria-atomic="true"></div>
 
                         <div class="bg-light p-3 rounded">
                             <p class="mb-2"><strong>Describe tu emergencia:</strong></p>
                             <textarea id="emergency-description" class="form-control" rows="3"
-                                placeholder="Ejemplo: Dolor de pecho intenso, dificultad para respirar..."></textarea>
+                                placeholder="Ejemplo: Dolor de pecho intenso, dificultad para respirar..." aria-label="Describe tu emergencia"></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
+                        <a href="tel:911" class="btn btn-outline-danger">
+                            <i class="fas fa-phone-volume me-2"></i>
+                            Llamar al 911
+                        </a>
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="button" class="btn btn-danger" id="send-emergency-btn">
                             <i class="fas fa-ambulance me-2"></i>
-                            Enviar Emergencia
+                            Enviar orientación urgente
                         </button>
                     </div>
                 </div>
@@ -1077,10 +1291,23 @@ function showEmergencyModal() {
         // Event listener para el botón de enviar emergencia
         document.getElementById('send-emergency-btn').addEventListener('click', function() {
             const description = document.getElementById('emergency-description').value.trim();
+            const feedback = document.getElementById('emergency-feedback');
+
+            if (feedback) {
+                feedback.classList.add('d-none');
+                feedback.textContent = '';
+            }
 
             if (description) {
                 // Enviar mensaje de emergencia
-                sendEmergencyMessage(description);
+                const sent = sendEmergencyMessage(description);
+                if (!sent) {
+                    if (feedback) {
+                        feedback.textContent = 'No pudimos enviar tu emergencia porque la conexión clínica no está disponible.';
+                        feedback.classList.remove('d-none');
+                    }
+                    return;
+                }
 
                 // Cerrar modal
                 const modalInstance = bootstrap.Modal.getInstance(modal);
@@ -1092,43 +1319,58 @@ function showEmergencyModal() {
                     messageInput.focus();
                 }
             } else {
-                alert('Por favor, describe tu emergencia');
+                if (feedback) {
+                    feedback.textContent = 'Describe brevemente qué está ocurriendo para priorizar tu consulta.';
+                    feedback.classList.remove('d-none');
+                }
             }
         });
     }
 
     // Mostrar modal
     const modalInstance = new bootstrap.Modal(modal);
+    const descriptionField = document.getElementById('emergency-description');
+    const feedback = document.getElementById('emergency-feedback');
+    if (descriptionField) {
+        descriptionField.value = '';
+    }
+    if (feedback) {
+        feedback.classList.add('d-none');
+        feedback.textContent = '';
+    }
     modalInstance.show();
 }
 
 function sendEmergencyMessage(description) {
     const emergencyMessage = `🚨 EMERGENCIA MÉDICA: ${description}`;
 
-    // Mostrar mensaje en el chat
-    if (typeof addMessageToChat === 'function') {
-        addMessageToChat('user', emergencyMessage, null);
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        showError('No pudimos activar la orientación urgente porque la conexión no está disponible. Si hay peligro inmediato, llama al 911.');
+        return false;
     }
 
-    // Enviar por WebSocket
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-            type: 'message',
-            message: emergencyMessage,
-            priority: 'EMERGENCY',
-            timestamp: new Date().toISOString()
-        }));
+    // Mostrar mensaje en el chat
+    if (typeof addMessageToChat === 'function') {
+        addMessageToChat({
+            role: 'user',
+            content: emergencyMessage,
+            specialist_type: 'emergencias'
+        });
     }
+
+    showFeedbackMessage('Protocolo urgente enviado. Si empeoras o hay riesgo vital, llama al 911 sin esperar respuesta del chat.', 'warning', { persist: true });
+    updateActiveSpecialist('emergencias');
+
+    // Enviar por WebSocket
+    ws.send(JSON.stringify({
+        message: emergencyMessage,
+        timestamp: new Date().toISOString()
+    }));
 
     // Mostrar indicador de procesamiento
     if (typeof showTypingIndicator === 'function') {
-        showTypingIndicator();
+        showTypingIndicator('Protocolo urgente');
     }
-}
 
-// Inicializar botón de emergencia cuando cargue el DOM
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeEmergencyButton);
-} else {
-    initializeEmergencyButton();
+    return true;
 }

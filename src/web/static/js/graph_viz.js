@@ -6,6 +6,13 @@ let graphData = null;
 let simulation = null;
 let svg = null;
 let g = null;
+const DEBUG_GRAPH_VIZ = false;
+
+function debugGraphViz(...args) {
+    if (DEBUG_GRAPH_VIZ) {
+        console.log(...args);
+    }
+}
 
 /**
  * Initialize D3.js graph visualization
@@ -45,7 +52,7 @@ function initializeGraph() {
         links: []
     };
 
-    console.log('📊 Graph visualization initialized');
+    debugGraphViz('📊 Graph visualization initialized');
 }
 
 /**
@@ -56,7 +63,7 @@ function updateGraph(stateData) {
         initializeGraph();
     }
 
-    console.log('🔄 Updating graph with state:', stateData);
+    debugGraphViz('🔄 Updating graph with state:', stateData);
 
     // Build graph from state
     const nodes = buildNodesFromState(stateData);

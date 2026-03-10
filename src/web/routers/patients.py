@@ -20,6 +20,7 @@ from src.web.auth import (
     clear_session_auth_cookie,
     create_patient_access_token,
     ensure_medical_record_access,
+    get_optional_patient_token,
     require_admin_key,
     require_patient_token,
     set_patient_auth_cookie,
@@ -150,6 +151,22 @@ async def create_patient(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="No se pudo registrar el paciente.",
         ) from e
+
+
+@router.get("/patients/me", response_model=PatientResponse)
+async def get_current_patient(
+    _: Any = Depends(enforce_read_rate_limit),
+    patient_auth: dict[str, Any] | None = Depends(get_optional_patient_token),
+) -> PatientResponse | Response:
+    """Obtiene el paciente autenticado actual sin exponer el MRN en la URL."""
+    if patient_auth is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    medical_record_number = str(patient_auth["medical_record_number"])
+    return await get_patient(
+        medical_record_number=medical_record_number,
+        patient_auth=patient_auth,
+    )
 
 
 @router.get("/patients/{medical_record_number}", response_model=PatientResponse)

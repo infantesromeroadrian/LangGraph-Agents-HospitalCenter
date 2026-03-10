@@ -208,6 +208,20 @@ def require_patient_token(
     return _decode_access_token(patient_token, expected_type=TOKEN_TYPE_PATIENT)
 
 
+def get_optional_patient_token(
+    patient_token: str | None = Cookie(default=None, alias=PATIENT_AUTH_COOKIE_NAME),
+) -> dict[str, Any] | None:
+    """Intenta validar la cookie de paciente y devuelve `None` si no es usable."""
+    if not patient_token:
+        return None
+
+    try:
+        return _decode_access_token(patient_token, expected_type=TOKEN_TYPE_PATIENT)
+    except HTTPException as exc:
+        logger.info("Cookie de paciente ignorada durante bootstrap (%s)", exc.detail)
+        return None
+
+
 def require_session_token(
     session_token: str | None = Cookie(default=None, alias=SESSION_AUTH_COOKIE_NAME),
 ) -> dict[str, Any]:

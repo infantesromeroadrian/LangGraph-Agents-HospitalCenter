@@ -50,9 +50,10 @@
                 </div>
             </div>
             <!-- ✅ FIX: Separar chat (con scroll) del input (fijo) -->
-            <div class="card-body p-0 d-flex flex-column" style="height: calc(100vh - 350px);">
+            <div class="card-body p-0 d-flex flex-column consultation-shell">
+                <div id="chat-feedback-region" class="chat-feedback-region px-3 pt-3" aria-live="assertive" aria-atomic="true"></div>
                 <!-- Messages Container - Con scroll interno -->
-                <div id="chat-messages" class="flex-grow-1 overflow-auto p-3 medical-chat-area">
+                <div id="chat-messages" class="flex-grow-1 overflow-auto p-3 medical-chat-area" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Conversación clínica">
                     <!-- Mensaje inicial del sistema -->
                     <div class="medical-system-message">
                         <div class="doctor-avatar-container">
@@ -87,7 +88,7 @@
                 </div>
 
                 <!-- ✅ Input Form - FIJO en la parte inferior (fuera del scroll) -->
-                <div class="p-3 bg-white border-top">
+                <div class="p-3 bg-white border-top chat-input-area">
                     <div id="attachment-preview-strip" class="attachment-preview-strip mb-2" style="display: none;"></div>
                     <input
                         type="file"
@@ -98,8 +99,10 @@
                         data-max-images="{{ settings.MAX_IMAGE_ATTACHMENTS }}"
                         data-max-image-mb="{{ settings.MAX_IMAGE_SIZE_MB }}"
                     >
+                    <label for="message-input" class="visually-hidden">Describe tus síntomas o responde al especialista</label>
+                    <p id="message-help" class="chat-help-text mb-2">Describe tus síntomas, evolución y cualquier cambio importante. Pulsa Enter para enviar.</p>
                     <div class="input-group">
-                        <button class="btn btn-outline-secondary" id="attach-image-btn" type="button" title="Adjuntar imagen clínica">
+                        <button class="btn btn-outline-secondary" id="attach-image-btn" type="button" title="Adjuntar imagen clínica" aria-label="Adjuntar imagen clínica">
                             <i class="fas fa-image"></i>
                         </button>
                         <input
@@ -108,20 +111,15 @@
                             class="form-control"
                             placeholder="Describe tus síntomas..."
                             autocomplete="off"
+                            maxlength="5000"
+                            aria-describedby="message-help"
                         >
-                        <button class="btn btn-primary" id="send-btn" type="button">
+                        <button class="btn btn-primary" id="send-btn" type="button" aria-label="Enviar mensaje al equipo clínico">
                             <i class="fas fa-paper-plane me-1"></i>
                             Enviar
                         </button>
                     </div>
 
-                    <!-- Typing Indicator -->
-                    <div id="typing-indicator" class="mt-2 text-muted" style="display: none;">
-                        <small>
-                            <i class="fas fa-spinner fa-spin me-1"></i>
-                            Procesando...
-                        </small>
-                    </div>
                 </div>
             </div>
         </div>
@@ -147,19 +145,20 @@
                         <i class="fas fa-circle text-success pulse-dot me-1"></i>
                         <span>Sistema de Triaje - Listo para atenderte</span>
                     </p>
+                    <p class="small text-muted mb-0 mt-2" id="consultation-status-note">Completa la admisión para activar la consulta segura.</p>
                 </div>
 
                 <!-- Info del Paciente (Nuevo - útil) -->
                 <div class="alert alert-light border">
                     <h6 class="mb-2">
                         <i class="fas fa-id-card me-2 text-primary"></i>
-                        Tu Información
+                        Perfil verificado
                     </h6>
                     <p class="mb-1 small" id="patient-info-display">
-                        <strong>HC:</strong> <span id="hc-display">Cargando...</span>
+                        <strong>Historia clínica:</strong> <span id="hc-display">Pendiente</span>
                     </p>
                     <p class="mb-0 small" id="patient-name-display">
-                        <strong>Paciente:</strong> <span id="name-display">-</span>
+                        <strong>Paciente:</strong> <span id="name-display">Sin verificar</span>
                     </p>
                 </div>
 
@@ -203,7 +202,9 @@
                     Esta información permite a nuestros especialistas considerar tus alergias, medicación actual y antecedentes médicos.</p>
                 </div>
 
-                <form id="admission-form">
+                <div id="admission-feedback" class="alert alert-danger d-none" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+                <form id="admission-form" novalidate>
                     <!-- Sección 1: Datos Personales -->
                     <div class="form-section mb-4">
                         <h6 class="section-title mb-3">
@@ -216,16 +217,20 @@
                                 <label for="full-name" class="form-label">
                                     <strong>Nombre Completo</strong> <span class="text-danger">*</span>
                                 </label>
-                                <input type="text" class="form-control" id="full-name" name="fullName" required
+                                <input type="text" class="form-control" id="full-name" name="fullName" required aria-describedby="full-name-help"
                                        placeholder="Ej: Juan Pérez García">
+                                <div id="full-name-help" class="form-text">Usa tu nombre tal y como quieres identificarte en la consulta.</div>
+                                <div class="invalid-feedback">Indica tu nombre completo.</div>
                             </div>
 
                             <div class="col-md-4 mb-3">
                                 <label for="age" class="form-label">
                                     <strong>Edad</strong> <span class="text-danger">*</span>
                                 </label>
-                                <input type="number" class="form-control" id="age" name="age" min="0" max="120" required
+                                <input type="number" class="form-control" id="age" name="age" min="0" max="120" required aria-describedby="age-help"
                                        placeholder="Ej: 35">
+                                <div id="age-help" class="form-text">Edad en años cumplidos.</div>
+                                <div class="invalid-feedback">Indica una edad válida entre 0 y 120 años.</div>
                             </div>
                         </div>
 
@@ -234,13 +239,15 @@
                                 <label for="gender" class="form-label">
                                     <strong>Género</strong> <span class="text-danger">*</span>
                                 </label>
-                                <select class="form-select" id="gender" name="gender" required>
+                                <select class="form-select" id="gender" name="gender" required aria-describedby="gender-help">
                                     <option value="">Seleccionar...</option>
                                     <option value="M">Masculino</option>
                                     <option value="F">Femenino</option>
                                     <option value="O">Otro</option>
                                     <option value="N">Prefiero no decir</option>
                                 </select>
+                                <div id="gender-help" class="form-text">Esta información ayuda a orientar mejor la evaluación clínica.</div>
+                                <div class="invalid-feedback">Selecciona una opción para continuar.</div>
                             </div>
 
                             <div class="col-md-8 mb-3">
@@ -308,7 +315,7 @@
                     <!-- Consentimiento -->
                     <div class="form-section bg-light p-3 rounded mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="consent" name="consent" required>
+                            <input class="form-check-input" type="checkbox" id="consent" name="consent" required aria-describedby="consent-help">
                             <label class="form-check-label" for="consent">
                                 <small>
                                     <strong>He leído y acepto:</strong><br>
@@ -317,6 +324,8 @@
                                     • En caso de emergencia real, debo llamar al 911 o acudir a urgencias
                                 </small>
                             </label>
+                            <div id="consent-help" class="form-text mt-2">Debes aceptar este consentimiento para iniciar la consulta.</div>
+                            <div class="invalid-feedback d-block" id="consent-error" style="display: none;">Debes aceptar el consentimiento informado para continuar.</div>
                         </div>
                     </div>
 
@@ -368,7 +377,7 @@
             <div class="modal-body">
                 <p><strong>Session ID:</strong> <span id="modal-session-id"></span></p>
                 <p><strong>Thread ID:</strong> <span id="modal-thread-id"></span></p>
-                <p><strong>Patient:</strong> <span id="modal-patient-name" class="text-success">No registrado</span></p>
+                <p><strong>Paciente:</strong> <span id="modal-patient-name" class="text-success">Perfil verificado</span></p>
                 <p><strong>Estado:</strong> <span class="badge bg-success">Activa</span></p>
             </div>
         </div>

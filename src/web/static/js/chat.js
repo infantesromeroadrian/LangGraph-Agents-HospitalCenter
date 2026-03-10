@@ -6,13 +6,20 @@
  */
 
 let isProcessing = false;
+const DEBUG_CHAT = false;
+
+function debugChat(...args) {
+    if (DEBUG_CHAT) {
+        console.log(...args);
+    }
+}
 
 /**
  * Initialize chat socket handlers
  * ✅ ACTUALIZADO: Ya no necesitamos esto, los handlers están en main.js
  */
 function initializeChatHandlers() {
-    console.log('✅ Chat handlers initialized (WebSocket nativo)');
+    debugChat('✅ Chat handlers initialized (WebSocket nativo)');
     // Los event handlers ahora están en handleWebSocketMessage() en main.js
 }
 
@@ -104,11 +111,13 @@ function showTypingIndicator(agentName) {
     const indicator = document.createElement('div');
     indicator.id = 'typing-indicator';
     indicator.className = 'message assistant';
+    indicator.setAttribute('role', 'status');
+    indicator.setAttribute('aria-live', 'polite');
     indicator.innerHTML = `
         <div class="message-bubble assistant-message typing">
             <div class="specialist-header">
                 <i class="fas fa-stethoscope"></i>
-                <strong>${escapeHtml(agentName || 'Agent')}</strong>
+                <strong>${escapeHtml(agentName || 'Equipo clínico')}</strong>
             </div>
             <div class="typing-dots">
                 <span></span>
@@ -142,11 +151,15 @@ function updateSendButton(enabled) {
 
     if (sendBtn) {
         sendBtn.disabled = !enabled;
+        sendBtn.setAttribute(
+            'aria-label',
+            enabled ? 'Enviar mensaje al equipo clínico' : 'El equipo clínico está procesando tu consulta'
+        );
 
         if (enabled) {
-            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span class="visually-hidden">Enviar mensaje</span>';
         } else {
-            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span class="visually-hidden">Procesando consulta</span>';
         }
     }
 

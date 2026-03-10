@@ -548,6 +548,22 @@ main {
     backdrop-filter: blur(10px);
 }
 
+.connection-status-badge.status-connected {
+    background: rgba(39, 174, 96, 0.2);
+}
+
+.connection-status-badge.status-reconnecting,
+.connection-status-badge.status-connecting,
+.connection-status-badge.status-idle {
+    background: rgba(243, 156, 18, 0.22);
+}
+
+.connection-status-badge.status-error,
+.connection-status-badge.status-auth,
+.connection-status-badge.status-disconnected {
+    background: rgba(231, 76, 60, 0.22);
+}
+
 .pulse-dot {
     color: var(--hospital-success);
     animation: pulse-dot 2s infinite;
@@ -571,6 +587,10 @@ main {
     color: white;
     font-weight: 600;
     backdrop-filter: blur(10px);
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ========================================
@@ -803,6 +823,19 @@ main {
     background: linear-gradient(180deg, #FFFFFF 0%, var(--hospital-accent) 100%);
 }
 
+.consultation-shell {
+    height: min(72dvh, 760px);
+    min-height: 540px;
+}
+
+.chat-feedback-region {
+    flex: 0 0 auto;
+}
+
+.chat-feedback-region .alert {
+    margin-bottom: 0;
+}
+
 .consultation-badge {
     background: rgba(255, 255, 255, 0.2);
     padding: 0.5rem 1rem;
@@ -816,6 +849,7 @@ main {
     padding: 1.5rem;
     background: white;
     border-radius: var(--border-radius);
+    min-height: 0;
 }
 
 /* Mensaje del sistema médico */
@@ -916,6 +950,15 @@ main {
     font-size: 0.9rem;
     font-weight: 600;
     margin-top: 1rem;
+}
+
+.chat-input-area {
+    flex: 0 0 auto;
+}
+
+.chat-help-text {
+    color: var(--hospital-text-muted);
+    font-size: 0.85rem;
 }
 
 /* ========================================
@@ -1143,6 +1186,23 @@ main {
    📱 RESPONSIVE ADJUSTMENTS
    ======================================== */
 @media (max-width: 768px) {
+    .consultation-shell {
+        height: min(68dvh, 680px);
+        min-height: 460px;
+    }
+
+    .chat-feedback-region {
+        padding-top: 0.75rem !important;
+    }
+
+    .chat-input-area {
+        padding: 0.85rem !important;
+    }
+
+    .chat-help-text {
+        font-size: 0.78rem;
+    }
+
     .hospital-name {
         font-size: 1.1rem;
     }
@@ -1167,10 +1227,20 @@ main {
     .medical-system-message {
         flex-direction: column;
         text-align: center;
+        padding: 1rem;
     }
 
     .doctor-avatar {
         margin: 0 auto;
+    }
+
+    .patient-info-badge {
+        max-width: 200px;
+    }
+
+    .message-attachment-image {
+        width: 128px;
+        height: 96px;
     }
 }
 
@@ -1295,6 +1365,16 @@ main {
 .form-select:focus {
     border-color: var(--hospital-primary);
     box-shadow: 0 0 0 0.25rem rgba(46, 125, 137, 0.15);
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid,
+.form-check-input.is-invalid {
+    border-color: var(--hospital-emergency);
+}
+
+.invalid-feedback {
+    font-size: 0.85rem;
 }
 
 /* Selector de urgencia */
