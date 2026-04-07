@@ -26,10 +26,6 @@ async def get_messages(
     """
     Obtiene el historial de mensajes de una sesión.
 
-    ✅ BUG CORREGIDO: Este endpoint tenía un bug en app.py (línea 196-198)
-    donde usaba `patient_info` sin definir. Ahora usa correctamente
-    `conversation_memory.get_messages()`.
-
     Args:
         session_id: UUID de la sesión
         limit: Número máximo de mensajes a retornar (1-500)
@@ -43,7 +39,6 @@ async def get_messages(
     try:
         ensure_session_access(session_auth, session_id)
 
-        # ✅ CORRECTO: Usar get_messages en vez de create_session
         messages = await conversation_memory.get_messages(session_id=session_id, limit=limit)
 
         return {

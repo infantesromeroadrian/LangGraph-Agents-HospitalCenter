@@ -299,7 +299,7 @@ class DatabaseService:
 
     async def execute_query(self, query: str, *args):
         """
-        ✅ NUEVO: Ejecuta una query genérica y retorna los resultados.
+        Ejecuta una query genérica y retorna los resultados.
 
         Args:
             query: Query SQL con placeholders ($1, $2, etc.)

@@ -1,9 +1,8 @@
 """
 WebSocket handler para chat médico en tiempo real.
 
-✅ MIGRACIÓN EXITOSA: Este módulo reemplaza el sistema Flask-SocketIO + eventlet
-con WebSocket nativo de FastAPI, resolviendo los conflictos de event loop
-con asyncpg y habilitando la persistencia de mensajes.
+Este módulo usa WebSocket nativo de FastAPI para streaming de respuestas
+y persistencia de mensajes en PostgreSQL.
 """
 
 import base64
@@ -74,7 +73,7 @@ manager = ConnectionManager()
 
 async def load_patient_context_for_session(session_id: str) -> tuple[dict, str | None]:
     """
-    ✅ NUEVO: Carga el contexto del paciente desde la base de datos.
+    Carga el contexto del paciente desde la base de datos.
 
     Args:
         session_id: ID de la sesión actual
@@ -354,11 +353,9 @@ async def process_user_message(
             metadata={"attachments": normalized_attachments} if normalized_attachments else {},
         )
 
-        # ✅ GUARDAR MENSAJE - FUNCIONA PERFECTAMENTE CON FASTAPI
         await conversation_memory.add_message(user_message)
         logger.debug("✅ Mensaje de usuario guardado en DB")
 
-        # ✅ NUEVO: CARGAR CONTEXTO DEL PACIENTE (si existe)
         patient_info, patient_context = await load_patient_context_for_session(session_id)
 
         # Configuración para LangGraph
@@ -400,7 +397,6 @@ async def process_user_message(
 
         logger.info("ℹ️ [WebSocket] Iniciando stream del grafo médico")
 
-        # ✅ ASYNC STREAMING NATIVO - SIN CONFLICTOS DE EVENT LOOP
         async for event in medical_graph_manager.stream(cast(MedicalGraphState, state), config):
             node_name = next(iter(event.keys()))
             node_output = event[node_name]
@@ -428,7 +424,6 @@ async def process_user_message(
             # Enviar y guardar mensajes de respuesta
             if "messages" in node_output:
                 for msg in node_output["messages"]:
-                    # ✅ GUARDAR MENSAJE EN DB - YA NO HAY PROBLEMAS DE EVENT LOOP
                     try:
                         await conversation_memory.add_message(msg)
                         logger.debug("✅ Mensaje de agente guardado en DB")

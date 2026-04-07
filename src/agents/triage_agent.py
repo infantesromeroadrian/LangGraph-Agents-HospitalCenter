@@ -68,7 +68,7 @@ IMPORTANTE:
         Args:
             message: Mensaje del paciente (str o Message object)
             session_id: ID de la sesión
-            patient_context: ✅ NUEVO - Contexto del paciente (alergias, medicación, antecedentes)
+            patient_context: Contexto del paciente (alergias, medicación, antecedentes)
 
         Returns:
             Análisis de triaje estructurado
@@ -82,7 +82,6 @@ IMPORTANTE:
         try:
             logger.info(f"ℹ️ Triaje: Analizando consulta (sesión={session_id})")
 
-            # ✅ NUEVO: Inyectar contexto del paciente en el prompt
             user_prompt = TRIAGE_PROMPT.format(
                 patient_query=format_user_input_for_llm(patient_query)
             )

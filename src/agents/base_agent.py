@@ -54,7 +54,7 @@ class BaseMedicalAgent(ABC):
         message,
         triage_analysis: Optional[dict] = None,
         session_id: Optional[UUID] = None,
-        patient_context: Optional[str] = None,  # ✅ NUEVO
+        patient_context: Optional[str] = None,
     ) -> SpecialistEvaluation | dict[str, Any]:
         """
         Evalúa si un caso pertenece a esta especialidad.
@@ -63,7 +63,7 @@ class BaseMedicalAgent(ABC):
             message: Mensaje del paciente (str o Message object)
             triage_analysis: Análisis previo del triaje (opcional)
             session_id: ID de la sesión
-            patient_context: ✅ NUEVO - Contexto del paciente (alergias, medicación, antecedentes)
+            patient_context: Contexto del paciente (alergias, medicación, antecedentes)
 
         Returns:
             Evaluación del especialista
@@ -136,7 +136,7 @@ class BaseMedicalAgent(ABC):
             message: Mensaje del paciente
             session_id: ID de la sesión
             history: Historial de conversación
-            patient_context: ✅ NUEVO - Contexto del paciente (alergias, medicación, antecedentes)
+            patient_context: Contexto del paciente (alergias, medicación, antecedentes)
 
         Returns:
             Respuesta del especialista
@@ -161,7 +161,7 @@ class BaseMedicalAgent(ABC):
                 {"role": "system", "content": self._get_chat_prompt(session_context)},
             ]
 
-            # ✅ NUEVO: Inyectar contexto del paciente ANTES del historial
+            # Inject patient context before conversation history
             if patient_context:
                 messages.append({"role": "system", "content": patient_context})
                 logger.info("✅ %s: Contexto del paciente protegido en el chat", self.specialty)

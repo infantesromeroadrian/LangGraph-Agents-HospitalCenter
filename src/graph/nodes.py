@@ -2,8 +2,6 @@
 
 import logging
 
-from langgraph.types import Send
-
 from src.agents.agent_factory import AgentFactory
 from src.agents.consensus_agent import ConsensusAgent
 from src.agents.triage_agent import TriageAgent
@@ -57,7 +55,6 @@ async def triage_node(state: MedicalGraphState) -> dict:
 
         triage_agent = TriageAgent(llm_service=llm_service)
 
-        # ✅ NUEVO: Pasar contexto del paciente al agente
         # Realizar análisis de triaje
         triage_result = await triage_agent.evaluate(
             message=last_user_message,
@@ -174,39 +171,6 @@ async def emergency_response_node(state: MedicalGraphState) -> dict:
     }
 
 
-def fan_out_to_specialists(state: MedicalGraphState) -> list[Send]:
-    """
-    Fan-out: Envía la consulta a todos los especialistas en paralelo.
-
-    Esta función usa la Send API de LangGraph para ejecutar
-    múltiples nodos especialistas en paralelo.
-
-    Args:
-        state: Estado actual del grafo
-
-    Returns:
-        Lista de Send objetos para ejecución paralela
-    """
-    try:
-        logger.info("ℹ️ [Fan-out] Enviando a especialistas en paralelo")
-
-        # Obtener todos los especialistas disponibles
-        specialties = AgentFactory.get_available_specialties()
-
-        # Crear Send para cada especialista
-        sends = [
-            Send("specialist_evaluation", {"specialty": specialty, "state": state})
-            for specialty in specialties
-        ]
-
-        logger.info(f"ℹ️ [Fan-out] {len(sends)} especialistas activados")
-
-        return sends
-
-    except Exception as e:
-        logger.error(f"❌ [Fan-out] Error: {e!s}")
-        return []
-
 
 async def specialist_evaluation_node(data: dict) -> dict:
     """
@@ -245,7 +209,6 @@ async def specialist_evaluation_node(data: dict) -> dict:
 
         last_user_message = user_messages[-1]
 
-        # ✅ NUEVO: Pasar contexto del paciente al especialista
         # Evaluar relevancia
         evaluation = await agent.evaluate(
             message=last_user_message,
@@ -367,13 +330,12 @@ async def specialist_chat_node(state: MedicalGraphState) -> dict:
 
         last_user_message = user_messages[-1]
 
-        # ✅ NUEVO: Pasar contexto del paciente también en el chat
         # Generar respuesta conversacional
         response = await agent.chat(
             message=last_user_message,
             session_id=session_id,
             history=messages,
-            patient_context=patient_context,  # ✅ CRÍTICO: Contexto del paciente
+            patient_context=patient_context,
         )
 
         # Crear mensaje de respuesta

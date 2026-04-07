@@ -35,19 +35,16 @@ jobs:
         run: |
           source .venv/bin/activate
           ruff check src/ tests/
-        continue-on-error: true  # No fallar el build por warnings
 
       - name: 🎨 Run Ruff (formatter check)
         run: |
           source .venv/bin/activate
           ruff format --check src/ tests/
-        continue-on-error: true
 
       - name: 🔍 Run mypy (type checker)
         run: |
           source .venv/bin/activate
           mypy src/ --ignore-missing-imports --no-strict-optional
-        continue-on-error: true  # Mypy muy estricto, no bloquear
 
   # ============================================================================
   # JOB 2: TESTS & COVERAGE
@@ -133,13 +130,11 @@ jobs:
         run: |
           source .venv/bin/activate
           bandit -r src/ -ll -ii
-        continue-on-error: true
 
       - name: 🛡️ Run Safety (dependency vulnerabilities)
         run: |
           source .venv/bin/activate
           safety check --json
-        continue-on-error: true
 
       - name: 🔍 Run Trivy (container scan)
         uses: aquasecurity/trivy-action@master
@@ -147,7 +142,7 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           severity: 'CRITICAL,HIGH'
-          exit-code: '0'  # No fallar, solo reportar
+          exit-code: '1'
 
   # ============================================================================
   # JOB 4: DOCKER BUILD TEST

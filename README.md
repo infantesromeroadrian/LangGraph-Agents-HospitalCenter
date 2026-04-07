@@ -1,6 +1,6 @@
 # 🏥 LangGraph Medical Center
 
-Sistema de agentes médicos especializados con orquestación paralela usando LangGraph, GPT-5.1 y PostgreSQL.
+Sistema de agentes médicos especializados con orquestación paralela usando LangGraph, Groq (Llama/OpenAI-compatible) y PostgreSQL.
 
 ## 🎯 Características Principales
 
@@ -8,7 +8,7 @@ Sistema de agentes médicos especializados con orquestación paralela usando Lan
 - **Memoria Persistente**: PostgreSQL para conversaciones y checkpointing de LangGraph
 - **Streaming en Tiempo Real**: WebSocket para respuestas en tiempo real
 - **Visualización de Grafo**: Muestra el flujo de agentes en D3.js
-- **LLM GPT-5.1**: Modelo de última generación para interacciones médicas
+- **LLM LLM (Groq-compatible)**: Modelo de última generación para interacciones médicas
 - **Arquitectura Modular**: Código limpio, separado por responsabilidades
 
 ## 🏗️ Arquitectura del Sistema
@@ -35,7 +35,7 @@ Usuario → Triaje → [8 Especialistas en Paralelo] → Consenso → Especialis
 - Docker & Docker Compose
 - Python 3.11+
 - PostgreSQL 15+
-- OpenAI API Key con acceso a GPT-5.1
+- Groq API Key (or OpenAI-compatible endpoint)
 
 ## 🚀 Instalación y Ejecución
 
@@ -58,7 +58,9 @@ Editar `.env` con tus credenciales:
 
 ```env
 OPENAI_API_KEY=tu_api_key_aqui
-FLASK_SECRET_KEY=tu_secret_key_segura
+OPENAI_BASE_URL=https://api.groq.com/openai/v1  # or https://api.openai.com/v1
+OPENAI_MODEL=llama-3.3-70b-versatile             # or gpt-4o, etc.
+APP_SECRET_KEY=tu_secret_key_segura
 ```
 
 ### 3. Ejecutar con Docker Compose
@@ -117,7 +119,7 @@ langgraph-medical-center/
 │   │   ├── evaluation.py
 │   │   └── session.py
 │   ├── services/                 # Servicios
-│   │   ├── llm_service.py       # Servicio GPT-5.1
+│   │   ├── llm_service.py       # Servicio LLM (OpenAI/Groq)
 │   │   └── database_service.py  # Servicio PostgreSQL
 │   ├── web/                      # Interfaz Flask
 │   │   ├── app.py               # Aplicación principal
@@ -144,8 +146,8 @@ langgraph-medical-center/
 
 | Variable | Descripción | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | API Key de OpenAI | *requerido* |
-| `OPENAI_MODEL` | Modelo de OpenAI | `gpt-5.1` |
+| `OPENAI_API_KEY` | API Key (Groq/OpenAI-compatible) | *requerido* |
+| `OPENAI_MODEL` | Modelo LLM | `gpt-4o` |
 | `DATABASE_URL` | URL de PostgreSQL | Ver env.example |
 | `FLASK_PORT` | Puerto de Flask | `5000` |
 | `FLASK_DEBUG` | Modo debug | `False` |
@@ -251,7 +253,7 @@ docker-compose restart postgres
 
 ### Error: "OpenAI API Key invalid"
 
-Verificar que `OPENAI_API_KEY` en `.env` sea válida y tenga acceso a GPT-5.1.
+Verificar que `OPENAI_API_KEY` en `.env` sea válida y que `OPENAI_BASE_URL` apunte al endpoint correcto (Groq, OpenAI, etc.).
 
 ### Error: "Port 5000 already in use"
 
@@ -266,7 +268,7 @@ lsof -ti:5000 | xargs kill -9  # macOS/Linux
 ## 📚 Recursos
 
 - [LangGraph Documentation](https://docs.langchain.com/oss/python/langgraph/)
-- [OpenAI API Reference](https://platform.openai.com/docs)
+- [Groq API Reference](https://console.groq.com/docs/api-reference)
 - [Flask Documentation](https://flask.palletsprojects.com/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 
@@ -280,16 +282,16 @@ lsof -ti:5000 | xargs kill -9  # macOS/Linux
 
 ## 📝 Licencia
 
-Este proyecto es privado y confidencial.
+MIT License. Ver [LICENSE](LICENSE) para más detalles.
 
 ## 👥 Autores
 
-- Medical AI Team
+- [Adrian Infantes](https://github.com/infantesromeroadrian)
 
 ## 🙏 Agradecimientos
 
 - LangGraph por el framework de orquestación
-- OpenAI por GPT-5.1
+- Groq por la API LLM compatible con OpenAI
 - Comunidad open source
 
 ---

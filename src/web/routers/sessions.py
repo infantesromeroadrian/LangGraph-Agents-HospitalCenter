@@ -28,7 +28,7 @@ class CreateSessionRequest(BaseModel):
     """Request para crear una nueva sesión."""
 
     patient_info: dict = Field(default_factory=dict)
-    medical_record_number: Optional[str] = None  # ✅ NUEVO - HC del paciente registrado
+    medical_record_number: Optional[str] = None
 
 
 class SessionResponse(BaseModel):
@@ -75,7 +75,7 @@ async def create_session(
             session_id=session_id, patient_info=request.patient_info
         )
 
-        # ✅ NUEVO: Si se proporciona medical_record_number, asociar con paciente
+        # If medical_record_number provided, associate session with patient
         if medical_record_number:
             async with db_service.get_connection() as conn:
                 patient_row = await conn.fetchrow(

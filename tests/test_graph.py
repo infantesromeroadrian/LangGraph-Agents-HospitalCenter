@@ -8,7 +8,6 @@ from src.graph.medical_graph import route_after_triage
 from src.graph.nodes import (
     consensus_node,
     emergency_response_node,
-    fan_out_to_specialists,
     specialist_chat_node,
     specialist_evaluation_node,
     triage_node,
@@ -151,26 +150,6 @@ class TestTriageNode:
         updates = await triage_node(sample_state)
 
         assert updates == {"needs_parallel_evaluation": False}
-
-
-class TestFanOutNode:
-    """Tests para fan-out a especialistas."""
-
-    def test_fan_out_to_specialists(self, sample_state):
-        """Test distribución a especialistas."""
-        sends = fan_out_to_specialists(sample_state)
-
-        assert isinstance(sends, list)
-        assert len(sends) == 9  # 9 especialistas, incluyendo ginecología
-
-        # Verificar que son Send objects con estructura correcta
-        for send in sends:
-            assert hasattr(send, "node")
-            assert send.node == "specialist_evaluation"
-            # Send uses 'arg' attribute, not 'state'
-            assert hasattr(send, "arg")
-            assert "specialty" in send.arg
-            assert "state" in send.arg
 
 
 class TestEmergencyRouting:

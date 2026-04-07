@@ -339,7 +339,7 @@ main {
     }
 }
 
-/* ✅ NUEVO: Pulse animation para indicador de estado */
+/* Pulse animation for status indicator */
 .pulse-dot {
     animation: pulse 2s infinite;
 }

@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 /**
- * ✅ NUEVO: Inicializa el sistema CON datos del paciente cargados
+ * Inicializa el sistema con datos del paciente cargados.
  */
 async function initializeSystemWithPatient() {
     debugLog('✅ Initializing system with verified patient context');
@@ -153,7 +153,7 @@ async function loadCurrentPatient() {
 }
 
 /**
- * ✅ NUEVO: Mostrar modal de admisión (no se puede cerrar sin completar)
+ * Mostrar modal de admisión (no se puede cerrar sin completar)
  */
 function showAdmissionModal(message) {
     const modalElement = document.getElementById('admissionModal');
@@ -281,7 +281,7 @@ function validateAdmissionForm() {
 }
 
 /**
- * ✅ NUEVO: Configurar event handler del formulario de admisión
+ * Configurar event handler del formulario de admisión
  */
 function setupAdmissionFormHandler() {
     const form = document.getElementById('admission-form');
@@ -352,7 +352,7 @@ function setupAdmissionFormHandler() {
 }
 
 /**
- * ✅ NUEVO: Enviar formulario de admisión al backend
+ * Enviar formulario de admisión al backend
  */
 async function submitAdmissionForm(patientData) {
     try {
@@ -409,7 +409,7 @@ function maskMedicalRecordNumber(medicalRecordNumber) {
 }
 
 /**
- * ✅ NUEVO: Actualizar badge con nombre del paciente
+ * Actualizar badge con nombre del paciente
  */
 function updatePatientBadge(patient) {
     // Buscar el badge en el header (definido en base.html)
@@ -434,7 +434,7 @@ function updatePatientBadge(patient) {
         modalPatientName.className = hasVerifiedPatient ? 'text-success fw-bold' : 'text-muted';
     }
 
-    // ✅ NUEVO: Actualizar panel de información del paciente (sidebar)
+    // Update patient info panel in sidebar
     const hcDisplay = document.getElementById('hc-display');
     const nameDisplay = document.getElementById('name-display');
 
@@ -450,7 +450,7 @@ function updatePatientBadge(patient) {
 }
 
 /**
- * ✅ NUEVO: Mostrar mensaje de éxito
+ * Mostrar mensaje de éxito
  */
 function showSuccessMessage(message) {
     showFeedbackMessage(message, 'success');
@@ -571,8 +571,7 @@ function initializeWebSocket() {
 }
 
 /**
- * Handle incoming WebSocket messages
- * ✅ NUEVO: Reemplaza los event handlers de Socket.IO
+ * Handle incoming WebSocket messages.
  */
 function handleWebSocketMessage(data) {
     debugLog('📨 WebSocket message received:', data);

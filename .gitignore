@@ -89,9 +89,11 @@ notebook/
 assets/
 history/
 
+# Session logs and history (AI pair-programming artifacts)
+session-*.md
+historyMD/
+
 # Project specific - History and tracking
-# ✅ historyMD/ is NOW TRACKED (documentation should be in repo)
-# tickets/ and tracking/ are still local-only
 tickets/
 tracking/
 
