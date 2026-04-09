@@ -1,94 +1,90 @@
-# Guía de Deployment - LangGraph Medical Center
+# Guia de Deployment - LangGraph Medical Center
 
-## 🚀 Deployment con Docker
+## Deployment con Docker
 
 ### Requisitos Previos
 
 - Docker Engine 20.10+
 - Docker Compose 2.0+
-- 2 GB RAM mínimo
+- 2 GB RAM minimo
 - 10 GB espacio en disco
 
-### 1. Preparación
+### 1. Preparacion
 
 ```bash
-# Clonar repositorio
 git clone <repository-url>
 cd langgraph-medical-center
 
-# Crear archivo .env desde ejemplo
-cp env.example .env
+cp .env.example .env
 ```
 
 ### 2. Configurar Variables de Entorno
 
-Editar `.env` con tus credenciales:
+Editar `.env` con valores reales. **No usar los valores por defecto en produccion.**
 
-```env
-# OpenAI (REQUERIDO)
-OPENAI_API_KEY=sk-proj-xxxxx
+Variables criticas a configurar:
 
-# Flask (REQUERIDO en producción)
-FLASK_SECRET_KEY=genera-un-secret-key-seguro-aqui
-FLASK_DEBUG=False
+| Variable | Descripcion |
+|---|---|
+| `OPENAI_API_KEY` | API key del proveedor LLM |
+| `APP_SECRET_KEY` | Secreto de 64+ caracteres para tokens |
+| `JWT_SECRET_KEY` | Secreto independiente para JWT |
+| `ADMIN_API_KEY` | Clave admin de 32+ caracteres |
+| `DATABASE_URL` | Connection string de PostgreSQL |
+| `AUTH_COOKIE_SECURE` | `True` en HTTPS, `False` en local |
 
-# PostgreSQL (ya configurado)
-DATABASE_URL=postgresql://medical_user:medical_password@postgres:5432/medical_db
+> Los valores que empiezan con `change-this` o `replace` son placeholders.
+> La aplicacion rechazara iniciar si detecta placeholders en las claves de seguridad.
+
+Generar secretos seguros:
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
 ### 3. Construir y Ejecutar
 
 ```bash
 cd docker
-docker-compose up --build
+docker compose up --build -d
 ```
 
 ### 4. Verificar Deployment
 
 ```bash
-# Health check
 curl http://localhost:5000/health
 
-# Debería retornar:
-# {
-#   "status": "healthy",
-#   "services": {
-#     "database": "connected",
-#     "llm": "configured",
-#     "graph": "initialized"
-#   }
-# }
+# 200 OK = todos los servicios operativos
+# 503 = DB o grafo no disponibles
 ```
 
-### 5. Acceder a la Aplicación
+### 5. Acceder a la Aplicacion
 
 - **Web UI**: http://localhost:5000
-- **PgAdmin** (dev): http://localhost:5050
-  - Email: admin@medical.com
-  - Password: admin
+- **PgAdmin** (solo dev): `docker compose --profile dev up pgadmin`
+
+> La documentacion API (Swagger/ReDoc) solo esta disponible con `APP_DEBUG=True`.
 
 ---
 
-## 🔧 Deployment en Producción
+## Deployment en Produccion
 
-### Variables de Entorno Críticas
+### Checklist de Seguridad
 
-```env
-# Producción
-FLASK_DEBUG=False
-FLASK_SECRET_KEY=<secreto-fuerte-de-64-caracteres>
+- [ ] Secretos generados con `secrets.token_urlsafe(48)` (no placeholders)
+- [ ] `APP_DEBUG=False`
+- [ ] `AUTH_COOKIE_SECURE=True`
+- [ ] PostgreSQL con password fuerte
+- [ ] Puerto 5432 de PostgreSQL NO expuesto al exterior
+- [ ] TLS/HTTPS configurado via reverse proxy
+- [ ] Rate limiting activo (defaults: 120/min read, 30/min write)
+- [ ] CORS_ORIGINS restringido a dominios reales
+- [ ] Logs monitoreados
 
-# PostgreSQL seguro
-DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<dbname>
+### docker-compose.prod.yml
 
-# Logging
-LOG_LEVEL=WARNING
-```
-
-### Docker Compose Production
+Crear un override para produccion:
 
 ```yaml
-# docker-compose.prod.yml
 services:
   app:
     restart: always
@@ -100,33 +96,14 @@ services:
         reservations:
           cpus: '1.0'
           memory: 1G
-    environment:
-      FLASK_DEBUG: "False"
-    volumes:
-      - ./src:/app/src:ro  # Read-only en prod
-```
 
-### Ejecutar en Producción
+  postgres:
+    ports: []  # No exponer puerto de DB
+```
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 ```
-
----
-
-## 🔒 Seguridad en Producción
-
-### Checklist de Seguridad
-
-- [ ] `FLASK_SECRET_KEY` cambiado y seguro (64+ caracteres)
-- [ ] `FLASK_DEBUG=False` en producción
-- [ ] PostgreSQL con password fuerte
-- [ ] Volúmenes read-only donde sea posible
-- [ ] Contenedores corriendo como non-root
-- [ ] Firewall configurado (solo puertos necesarios)
-- [ ] TLS/HTTPS configurado (usar reverse proxy)
-- [ ] Rate limiting activo
-- [ ] Logs monitoreados
 
 ### Configurar HTTPS con Nginx
 
@@ -145,178 +122,84 @@ server {
         proxy_set_header Connection "upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
 
 ---
 
-## 📊 Monitoreo
+## Monitoreo
+
+### Health Check
+
+- **200**: todos los servicios operativos
+- **503**: DB o grafo no disponibles
 
 ### Logs
 
 ```bash
-# Ver logs en tiempo real
-docker-compose logs -f app
-
-# Logs de PostgreSQL
-docker-compose logs -f postgres
-
-# Logs específicos
-docker-compose logs --tail=100 app
+docker compose logs -f app
+docker compose logs --tail=100 app
 ```
 
-### Métricas
+### Metricas
 
-Endpoints para monitoreo:
-- `/health` - Health check general
-- `/metrics` - Métricas Prometheus (TODO: implementar)
+- `/health` - Estado del sistema
+- `/metrics` - Metricas Prometheus (requiere header `X-Admin-Key`)
 
 ### Backups de PostgreSQL
 
 ```bash
-# Backup manual
-docker-compose exec postgres pg_dump -U medical_user medical_db > backup_$(date +%Y%m%d).sql
+# Backup — usar credenciales de .env
+docker compose exec postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup_$(date +%Y%m%d).sql
 
 # Restaurar
-docker-compose exec -T postgres psql -U medical_user medical_db < backup_20251227.sql
+docker compose exec -T postgres psql -U "$POSTGRES_USER" "$POSTGRES_DB" < backup.sql
 ```
 
 ---
 
-## 🔄 Actualización del Sistema
+## Actualizacion
 
-### Zero-Downtime Deployment
-
-1. **Build nueva imagen**:
-```bash
-docker-compose build app
-```
-
-2. **Crear nuevo contenedor**:
-```bash
-docker-compose up -d --no-deps --scale app=2 app
-```
-
-3. **Verificar health**:
-```bash
-curl http://localhost:5000/health
-```
-
-4. **Remover contenedor viejo**:
-```bash
-docker-compose up -d --no-deps --scale app=1 --remove-orphans app
-```
+1. Build nueva imagen: `docker compose build app`
+2. Recrear contenedor: `docker compose up -d --no-deps app`
+3. Verificar: `curl http://localhost:5000/health`
 
 ### Rollback
 
 ```bash
-# Volver a versión anterior
-docker-compose down
-docker-compose pull app:previous-tag
-docker-compose up -d
+docker compose down
+docker compose up -d --force-recreate
 ```
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Error: Cannot connect to PostgreSQL
-
-```bash
-# Verificar que PostgreSQL está corriendo
-docker-compose ps postgres
-
-# Ver logs
-docker-compose logs postgres
-
-# Reiniciar servicio
-docker-compose restart postgres
-```
-
-### Error: Port 5000 already in use
-
-```bash
-# Cambiar puerto en docker-compose.yml
-services:
-  app:
-    ports:
-      - "8000:5000"  # External:Internal
-```
-
-### Error: Out of memory
-
-```bash
-# Aumentar límites en docker-compose.yml
-services:
-  app:
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-```
+| Problema | Solucion |
+|---|---|
+| Cannot connect to PostgreSQL | `docker compose logs postgres` y verificar que esta healthy |
+| "APP_SECRET_KEY contiene un valor placeholder" | Generar secreto real con `secrets.token_urlsafe(48)` |
+| Port 5000 already in use | Cambiar puerto externo en docker-compose.yml: `"8000:5000"` |
+| Health devuelve 503 | DB o grafo no inicializados, revisar logs |
 
 ---
 
-## 📈 Escalamiento
+## Mantenimiento
 
-### Horizontal Scaling
-
-```yaml
-# docker-compose.scale.yml
-services:
-  app:
-    deploy:
-      replicas: 3
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - app
-```
-
-### Vertical Scaling
-
-- Aumentar CPU/memoria en `deploy.resources`
-- Ajustar `DB_POOL_SIZE` según carga
-- Configurar workers de Gunicorn
-
----
-
-## 🔍 Mantenimiento
-
-### Limpieza de Sesiones Antiguas
+### Limpieza de Sesiones
 
 ```python
-# Script de maintenance
 from src.services.database_service import db_service
-
-async def cleanup():
-    await db_service.cleanup_old_sessions(days=30)
+await db_service.cleanup_old_sessions(days=30)
 ```
 
-### Rotación de Logs
+### Rotacion de Logs
 
-Los logs rotan automáticamente:
-- Máximo 10 MB por archivo
-- 5 archivos de backup
-- Configurado en `logging_config.py`
+Automatica: 10 MB por archivo, 5 archivos de backup (ver `logging_config.py`).
 
 ---
 
-## 📞 Soporte
-
-Para problemas de deployment:
-1. Verificar logs: `docker-compose logs`
-2. Health check: `curl http://localhost:5000/health`
-3. Verificar variables de entorno en `.env`
-4. Revisar documentación en `docs/`
-
----
-
-**Versión del Documento**: 1.0
-**Última actualización**: 2025-12-27
+**Version**: 2.0 (FastAPI) | **Actualizado**: 2026-04-10

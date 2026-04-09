@@ -12,6 +12,8 @@ from pydantic import BaseModel, Field
 from src.memory.conversation_memory import conversation_memory
 from src.services.database_service import db_service
 from src.web.auth import (
+    PATIENT_AUTH_COOKIE_NAME,
+    SESSION_AUTH_COOKIE_NAME,
     create_session_access_token,
     ensure_session_access,
     require_patient_token,
@@ -161,3 +163,22 @@ async def get_session(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno al obtener la sesión.",
         ) from e
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(response: Response):
+    """
+    Cierra la sesion del paciente eliminando las cookies de autenticacion.
+
+    Las cookies HttpOnly no son accesibles desde JavaScript, por lo que
+    el cliente debe llamar a este endpoint para limpiarlas.
+    """
+    response.delete_cookie(
+        key=PATIENT_AUTH_COOKIE_NAME,
+        path="/",
+    )
+    response.delete_cookie(
+        key=SESSION_AUTH_COOKIE_NAME,
+        path="/",
+    )
+    return None
