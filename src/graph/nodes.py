@@ -89,7 +89,7 @@ async def triage_node(state: MedicalGraphState) -> dict:
             content="Lo siento, hubo un error en el análisis inicial. Por favor, inténtalo de nuevo.",
             session_id=session_id,
             specialist_type="triaje",
-            metadata={"error": str(e)},
+            metadata={"error": "internal_processing_error"},
         )
         return {"messages": [error_message], "triage_completed": False}
 
@@ -287,7 +287,7 @@ async def consensus_node(state: MedicalGraphState) -> dict:
             content="Lo siento, hubo un error al procesar las evaluaciones.",
             session_id=session_id,
             specialist_type="consenso",
-            metadata={"error": str(e)},
+            metadata={"error": "internal_processing_error"},
         )
         return {"messages": [error_message], "needs_parallel_evaluation": False}
 

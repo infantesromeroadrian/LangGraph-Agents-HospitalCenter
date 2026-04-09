@@ -26,23 +26,3 @@ class DermatologyAgent(BaseMedicalAgent):
         from src.config.prompts import get_specialty_prompt
 
         return get_specialty_prompt("dermatologia")
-
-    def _get_evaluation_criteria(self) -> list:
-        """
-        Retorna criterios de evaluación para dermatología.
-
-        Returns:
-            Lista de criterios dermatológicos
-        """
-        return [
-            "Lesiones cutáneas o erupciones",
-            "Acné y problemas de piel grasa",
-            "Eccemas y dermatitis",
-            "Psoriasis",
-            "Infecciones de piel (hongos, bacterias)",
-            "Lunares y lesiones pigmentadas",
-            "Cáncer de piel o melanoma",
-            "Alopecia o caída del cabello",
-            "Problemas de uñas",
-            "Alergias cutáneas",
-        ]

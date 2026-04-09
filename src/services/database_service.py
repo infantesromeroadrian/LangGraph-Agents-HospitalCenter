@@ -232,7 +232,7 @@ class DatabaseService:
                 evaluation.specialist_type,
                 evaluation.relevance_score,
                 evaluation.reasoning,
-                evaluation.evaluation_data,
+                json.dumps(evaluation.evaluation_data) if evaluation.evaluation_data else json.dumps({}),
                 evaluation.created_at,
             )
             logger.debug(

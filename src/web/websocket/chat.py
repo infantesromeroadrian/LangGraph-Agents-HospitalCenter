@@ -7,6 +7,7 @@ y persistencia de mensajes en PostgreSQL.
 
 import base64
 import binascii
+import contextlib
 import logging
 from typing import cast
 from uuid import UUID
@@ -50,9 +51,13 @@ class ConnectionManager:
 
     async def connect(self, session_id: str, websocket: WebSocket):
         """Acepta y registra una nueva conexión WebSocket."""
+        if session_id in self.active_connections:
+            old_ws = self.active_connections[session_id]
+            with contextlib.suppress(Exception):
+                await old_ws.close(code=4409, reason="Session connected elsewhere")
         await websocket.accept()
         self.active_connections[session_id] = websocket
-        logger.info("ℹ️ [WebSocket] Cliente conectado")
+        logger.info("[WebSocket] Client connected")
 
     def disconnect(self, session_id: str):
         """Desregistra una conexión WebSocket."""

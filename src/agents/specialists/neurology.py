@@ -26,23 +26,3 @@ class NeurologyAgent(BaseMedicalAgent):
         from src.config.prompts import get_specialty_prompt
 
         return get_specialty_prompt("neurologia")
-
-    def _get_evaluation_criteria(self) -> list:
-        """
-        Retorna criterios de evaluación para neurología.
-
-        Returns:
-            Lista de criterios neurológicos
-        """
-        return [
-            "Cefaleas y migrañas",
-            "Mareos y vértigo",
-            "Pérdida de conciencia o desmayos",
-            "Convulsiones o epilepsia",
-            "Problemas de memoria o cognitivos",
-            "Trastornos del movimiento (temblores, Parkinson)",
-            "Accidente cerebrovascular (ACV)",
-            "Esclerosis múltiple",
-            "Neuropatías periféricas",
-            "Alteraciones del sueño neurológicas",
-        ]

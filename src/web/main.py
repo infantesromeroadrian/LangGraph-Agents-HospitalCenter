@@ -8,7 +8,7 @@ y mejorar performance con soporte async nativo.
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -71,8 +71,8 @@ app = FastAPI(
     description="Sistema de agentes médicos especializados con LangGraph y GPT-4o",
     version="2.0.0",
     lifespan=lifespan,
-    docs_url="/docs",  # Swagger UI
-    redoc_url="/redoc",  # ReDoc
+    docs_url="/docs" if settings.APP_DEBUG else None,
+    redoc_url="/redoc" if settings.APP_DEBUG else None,
 )
 
 # CORS Middleware
@@ -80,9 +80,30 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_cors_origins_list(),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Admin-Key"],
 )
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next) -> Response:
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' cdn.jsdelivr.net d3js.org cdnjs.cloudflare.com; "
+        "style-src 'self' cdn.jsdelivr.net cdnjs.cloudflare.com 'unsafe-inline'; "
+        "font-src 'self' cdnjs.cloudflare.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self' ws: wss:"
+    )
+    if settings.AUTH_COOKIE_SECURE:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
 
 # Importar y registrar routers
 # IMPORTANTE: Los imports van después de crear la app para evitar import circulares

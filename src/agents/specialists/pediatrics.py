@@ -26,23 +26,3 @@ class PediatricsAgent(BaseMedicalAgent):
         from src.config.prompts import get_specialty_prompt
 
         return get_specialty_prompt("pediatria")
-
-    def _get_evaluation_criteria(self) -> list:
-        """
-        Retorna criterios de evaluación para pediatría.
-
-        Returns:
-            Lista de criterios pediátricos
-        """
-        return [
-            "Paciente menor de 18 años",
-            "Enfermedades infantiles comunes",
-            "Desarrollo y crecimiento",
-            "Vacunación y prevención",
-            "Fiebre en niños",
-            "Problemas de alimentación",
-            "Trastornos del desarrollo",
-            "Infecciones respiratorias pediátricas",
-            "Alergias infantiles",
-            "Control de niño sano",
-        ]

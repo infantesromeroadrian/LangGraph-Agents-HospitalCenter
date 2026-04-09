@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from src.models.patient import (
     PatientContextForLLM,
@@ -62,10 +62,10 @@ def generate_medical_record_number() -> str:
     Returns:
         String con el número de historia clínica
     """
-    import random
+    import secrets
 
     year = datetime.now().year
-    random_num = random.randint(100000, 999999)
+    random_num = secrets.randbelow(900000) + 100000
     return f"HC-{year}-{random_num}"
 
 
@@ -88,20 +88,23 @@ async def create_patient(
         HTTPException: Si hay error al crear el paciente
     """
     try:
-        # Generar número de historia clínica único
-        medical_record_number = generate_medical_record_number()
+        # Generar número de historia clínica único con retry
+        medical_record_number = None
+        for _attempt in range(5):
+            candidate = generate_medical_record_number()
+            existing = await db_service.execute_query(
+                "SELECT id FROM patients WHERE medical_record_number = $1",
+                candidate,
+            )
+            if not existing:
+                medical_record_number = candidate
+                break
 
-        # Verificar que no exista (muy improbable, pero por seguridad)
-        existing = await db_service.execute_query(
-            """
-            SELECT id FROM patients WHERE medical_record_number = $1
-            """,
-            medical_record_number,
-        )
-
-        if existing:
-            # Si existe, regenerar
-            medical_record_number = generate_medical_record_number()
+        if medical_record_number is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="No se pudo generar un número de historia clínica único.",
+            )
 
         # Insertar paciente en la base de datos
         query = """
@@ -291,13 +294,17 @@ async def update_patient(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Paciente no encontrado"
             )
 
-        # Construir query de actualización solo con campos proporcionados
+        # Construir query de actualización solo con campos permitidos
+        allowed_columns = {
+            "full_name", "age", "gender", "dni", "email", "phone",
+            "allergies", "medications", "medical_history",
+        }
         update_fields = []
         update_values = []
         param_num = 1
 
         for field, value in patient_data.model_dump(exclude_unset=True).items():
-            if value is not None:
+            if value is not None and field in allowed_columns:
                 update_fields.append(f"{field} = ${param_num}")
                 update_values.append(value)
                 param_num += 1
@@ -345,8 +352,8 @@ async def update_patient(
 
 @router.get("/patients", response_model=list[PatientSummary])
 async def list_patients(
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     __: Any = Depends(enforce_read_rate_limit),
     _: Any = Depends(require_admin_key),
 ) -> list[PatientSummary]:

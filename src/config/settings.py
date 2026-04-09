@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -69,25 +69,20 @@ class Settings(BaseSettings):
         default="balanced"
     )
 
-    @validator("CHECKPOINT_DB_URL", pre=True, always=True)
-    def set_checkpoint_url(cls, v, values):
+    @field_validator("CHECKPOINT_DB_URL", mode="before")
+    @classmethod
+    def set_checkpoint_url(cls, v: str, info) -> str:
         """Usar DATABASE_URL si no se especifica CHECKPOINT_DB_URL."""
-        if not v and "DATABASE_URL" in values:
-            return values["DATABASE_URL"]
+        if not v:
+            return info.data.get("DATABASE_URL", "")
         return v
 
-    @validator("JWT_SECRET_KEY", pre=True, always=True)
-    def set_jwt_secret_key(cls, v, values):
+    @field_validator("JWT_SECRET_KEY", mode="before")
+    @classmethod
+    def set_jwt_secret_key(cls, v: str, info) -> str:
         """Usar APP_SECRET_KEY si no se especifica JWT_SECRET_KEY."""
-        if not v and "APP_SECRET_KEY" in values:
-            return values["APP_SECRET_KEY"]
-        return v
-
-    @validator("CORS_ORIGINS")
-    def parse_cors_origins(cls, v):
-        """Parsear CORS_ORIGINS como lista."""
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+        if not v:
+            return info.data.get("APP_SECRET_KEY", "")
         return v
 
     class Config:
@@ -99,14 +94,18 @@ class Settings(BaseSettings):
 
     def get_cors_origins_list(self) -> list[str]:
         """Obtiene la lista de orígenes CORS."""
-        if isinstance(self.CORS_ORIGINS, list):
-            return self.CORS_ORIGINS
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
 
     def validate_config(self) -> bool:
         """Valida la configuración crítica."""
         token_signing_key = self.get_token_signing_key()
         admin_api_key = self.get_admin_api_key()
+
+        placeholder_prefixes = ("change-this", "replace", "your-", "example", "set-this")
+
+        def _is_placeholder(value: str) -> bool:
+            return value.lower().startswith(placeholder_prefixes)
+
         critical_checks = [
             (bool(self.OPENAI_API_KEY), "OPENAI_API_KEY no configurada"),
             (self.OPENAI_BASE_URL.startswith("http"), "OPENAI_BASE_URL inválida"),
@@ -115,7 +114,19 @@ class Settings(BaseSettings):
                 len(token_signing_key) >= 32,
                 "APP_SECRET_KEY/JWT_SECRET_KEY debe tener al menos 32 caracteres",
             ),
+            (
+                not _is_placeholder(token_signing_key),
+                "APP_SECRET_KEY/JWT_SECRET_KEY contiene un valor placeholder — genere un secreto real",
+            ),
             (len(admin_api_key) >= 16, "ADMIN_API_KEY debe tener al menos 16 caracteres"),
+            (
+                not _is_placeholder(admin_api_key),
+                "ADMIN_API_KEY contiene un valor placeholder — genere un secreto real",
+            ),
+            (
+                self.APP_DEBUG or self.AUTH_COOKIE_SECURE,
+                "AUTH_COOKIE_SECURE debe ser True en producción (APP_DEBUG=False)",
+            ),
         ]
 
         for check, error_msg in critical_checks:

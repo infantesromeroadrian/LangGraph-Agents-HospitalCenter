@@ -18,10 +18,10 @@ class TestFastAPIMigration:
     def test_health_endpoint(self):
         """Test que el endpoint de salud funciona."""
         response = client.get("/health")
-        assert response.status_code == 200
+        assert response.status_code in (200, 503)
 
         data = response.json()
-        assert data["status"] == "healthy"
+        assert data["status"] in ("healthy", "degraded")
         assert data["version"] == "2.0.0"
         assert data["framework"] == "FastAPI"
         assert "services" in data
@@ -53,26 +53,8 @@ class TestFastAPIMigration:
         assert response.status_code == 200
         assert b"medical_uptime" in response.content
 
-    def test_create_session(self):
-        """Test crear sesión (requiere DB mock o test DB)."""
-        # Skip si no hay DB disponible
-        pytest.skip("Requires database connection")
-
-        response = client.post(
-            "/api/sessions",
-            json={"patient_info": {"name": "Test Patient", "age": 30}},
-        )
-        assert response.status_code == 201
-        data = response.json()
-        assert data["success"] is True
-        assert "session_id" in data
-        assert "thread_id" in data
-
-    def test_openapi_docs(self):
-        """Test que la documentación OpenAPI está disponible."""
-        response = client.get("/docs")
-        assert response.status_code == 200
-
+    def test_openapi_schema(self):
+        """Test que el schema OpenAPI contiene los endpoints esperados."""
         response = client.get("/openapi.json")
         assert response.status_code == 200
         schema = response.json()
@@ -82,37 +64,14 @@ class TestFastAPIMigration:
         assert "/api/sessions" in schema["paths"]
 
     def test_cors_headers(self):
-        """Test que CORS está configurado correctamente."""
-        # Test with GET request (OPTIONS may not be explicitly handled)
+        """Test que CORS devuelve el header allow-origin para origenes configurados."""
         response = client.get("/health", headers={"Origin": "http://localhost:5000"})
-        assert response.status_code == 200
-        # CORS headers should be present
-        assert "access-control-allow-origin" in response.headers or response.status_code == 200
-
-    def test_websocket_endpoint_exists(self):
-        """Test que el endpoint WebSocket existe (conexión sin session_id falla)."""
-        # El endpoint existe pero requiere session_id válido
-        # Solo verificamos que está definido en el schema
-        response = client.get("/openapi.json")
-        # WebSockets no aparecen en OpenAPI de la misma forma que HTTP endpoints
-        # Este test verifica que no hay error 404
-        assert response.status_code == 200
+        assert response.status_code in (200, 503)
+        assert "access-control-allow-origin" in response.headers
 
 
 class TestBackwardCompatibility:
     """Tests para verificar compatibilidad con el sistema anterior."""
-
-    def test_session_response_format(self):
-        """Test que el formato de respuesta de sesión es compatible."""
-        pytest.skip("Requires database connection")
-
-        response = client.post("/api/sessions", json={"patient_info": {"name": "Test"}})
-        data = response.json()
-
-        # Verificar que tiene los mismos campos que antes
-        assert "success" in data
-        assert "session_id" in data
-        assert "thread_id" in data
 
     def test_health_response_format(self):
         """Test que el formato de health check es compatible."""
@@ -139,7 +98,7 @@ class TestPerformance:
         response = client.get("/health")
         duration = time.time() - start
 
-        assert response.status_code == 200
+        assert response.status_code in (200, 503)
         assert duration < 1.0, f"Health check took {duration}s (should be < 1s)"
 
     def test_openapi_schema_latency(self):
@@ -163,11 +122,9 @@ class TestErrorHandling:
         assert response.status_code == 404
 
     def test_invalid_session_id(self):
-        """Test que IDs inválidos retornan error apropiado."""
-        pytest.skip("Requires database connection")
-
+        """Test que sesiones sin auth retornan 401."""
         response = client.get("/api/sessions/invalid-uuid")
-        assert response.status_code in [400, 422, 500]
+        assert response.status_code == 401
 
 
 if __name__ == "__main__":

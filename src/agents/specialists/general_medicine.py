@@ -26,19 +26,3 @@ class GeneralMedicineAgent(BaseMedicalAgent):
         from src.config.prompts import get_specialty_prompt
 
         return get_specialty_prompt("medicina_general")
-
-    def _get_evaluation_criteria(self) -> list:
-        """
-        Retorna criterios de evaluación para medicina general.
-
-        Returns:
-            Lista de criterios
-        """
-        return [
-            "Síntomas generales no específicos",
-            "Consultas preventivas y chequeos",
-            "Derivación a especialistas cuando necesario",
-            "Manejo de condiciones comunes",
-            "Seguimiento de tratamientos",
-            "Educación en salud general",
-        ]

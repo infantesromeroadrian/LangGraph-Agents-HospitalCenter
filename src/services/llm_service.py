@@ -73,9 +73,9 @@ class LLMService:
 
             response = await self.client.chat.completions.create(**params)
 
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content or ""
 
-            logger.info(f"ℹ️ LLM respondió con {len(content)} caracteres")
+            logger.info("LLM responded with %d characters", len(content))
 
             return content
 
@@ -128,13 +128,18 @@ class LLMService:
         try:
             logger.debug(f"🐞 Iniciando streaming con {len(messages)} mensajes")
 
-            stream = await self.client.chat.completions.create(
-                model=self.model,
-                messages=messages,
-                temperature=temperature or self.temperature,
-                max_tokens=self.max_tokens,
-                stream=True,
-            )
+            params = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": temperature or self.temperature,
+                "stream": True,
+            }
+            if self.is_groq_compatible:
+                params["max_tokens"] = self.max_tokens
+            else:
+                params["max_completion_tokens"] = self.max_tokens
+
+            stream = await self.client.chat.completions.create(**params)
 
             async for chunk in stream:
                 if chunk.choices[0].delta.content is not None:

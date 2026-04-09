@@ -7,7 +7,7 @@ import os
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from src.graph.medical_graph import medical_graph_manager
 from src.services.database_service import db_service
@@ -38,8 +38,10 @@ async def health():
     else:
         db_status = "pending"
 
-    return {
-        "status": "healthy",
+    is_healthy = db_status == "connected" and medical_graph_manager.graph is not None
+
+    payload = {
+        "status": "healthy" if is_healthy else "degraded",
         "version": "2.0.0",
         "framework": "FastAPI",
         "worker_pid": os.getpid(),
@@ -49,6 +51,11 @@ async def health():
             "graph": "initialized" if medical_graph_manager.graph else "pending",
         },
     }
+
+    if not is_healthy:
+        return JSONResponse(content=payload, status_code=503)
+
+    return payload
 
 
 @router.get("/metrics", response_class=PlainTextResponse)

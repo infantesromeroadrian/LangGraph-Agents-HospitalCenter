@@ -90,15 +90,21 @@ class ConversationMemory:
             True si se actualizó correctamente
         """
         try:
-            success = await self.db.update_session(session_id, updates)
+            session = await self.db.get_session(session_id)
+            if not session:
+                logger.warning("Session not found for update: %s", session_id)
+                return False
 
-            if success:
-                logger.info(f"ℹ️ Sesión actualizada: {session_id}")
+            for key, value in updates.items():
+                if hasattr(session, key):
+                    setattr(session, key, value)
 
-            return success
+            await self.db.update_session(session)
+            logger.info("Session updated: %s", session_id)
+            return True
 
         except Exception as e:
-            logger.error(f"❌ Error actualizando sesión: {e!s}")
+            logger.error("Error updating session: %s", e)
             return False
 
     async def add_message(self, message: Message) -> bool:

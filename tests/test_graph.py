@@ -295,7 +295,5 @@ class TestGraphIntegration:
 
     @pytest.mark.asyncio
     async def test_full_graph_flow(self):
-        """Test flujo completo del grafo (requiere LangGraph)."""
-        # Este test requiere el grafo real compilado
-        # Se implementará en test_system_integration.py
-        pass
+        """Test flujo completo del grafo (requiere LangGraph y DB)."""
+        pytest.skip("Requires live database and LLM — run in integration CI only")

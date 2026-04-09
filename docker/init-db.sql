@@ -47,8 +47,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content TEXT NOT NULL,
     specialist_type TEXT,
     metadata JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create evaluations table for specialist assessments
@@ -59,8 +58,7 @@ CREATE TABLE IF NOT EXISTS specialist_evaluations (
     relevance_score FLOAT NOT NULL CHECK (relevance_score >= 0 AND relevance_score <= 100),
     reasoning TEXT,
     evaluation_data JSONB DEFAULT '{}'::jsonb,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (session_id) REFERENCES sessions(session_id)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Create indexes for performance
@@ -85,9 +83,9 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_sessions_updated_at BEFORE UPDATE ON sessions
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Grant permissions
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO medical_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO medical_user;
+-- Grant permissions (uses current_user so it works regardless of POSTGRES_USER value)
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO current_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO current_user;
 
 -- Insert default data
 INSERT INTO sessions (session_id, patient_info) VALUES
@@ -151,5 +149,5 @@ ADD COLUMN IF NOT EXISTS patient_id UUID REFERENCES patients(id) ON DELETE SET N
 CREATE INDEX IF NOT EXISTS idx_sessions_patient ON sessions(patient_id);
 
 -- Permisos
-GRANT ALL PRIVILEGES ON TABLE patients TO medical_user;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO medical_user;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE patients TO current_user;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO current_user;

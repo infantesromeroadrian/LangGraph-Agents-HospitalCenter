@@ -15,15 +15,23 @@ PATIENT_RECORD_END_MARKER = "<|patient_record_end|>"
 
 PROMPT_INJECTION_PATTERNS: dict[str, re.Pattern[str]] = {
     "role_tags": re.compile(r"(?i)\[(?:/?system|/?inst)\]|<<\/?sys>>"),
-    "directive_headers": re.compile(r"(?im)^(?:system|assistant|developer|human)\s*:\s*"),
-    "override_language": re.compile(
+    "directive_headers": re.compile(r"(?im)^(?:system|assistant|developer|human|sistema|asistente)\s*:\s*"),
+    "override_language_en": re.compile(
         r"(?i)\b(?:ignore (?:all )?previous instructions?|ignore instructions?|"
         r"forget (?:all )?(?:previous|above)|new instructions?|you are now|"
         r"act as|pretend you are|override your|developer mode|jailbreak|"
         r"unrestricted mode|dan)\b"
     ),
+    "override_language_es": re.compile(
+        r"(?i)\b(?:ignora (?:todas )?(?:las )?instrucciones?(?: anteriores)?|"
+        r"olvida (?:las )?instrucciones?(?: previas| anteriores)?|"
+        r"nuevas instrucciones|ahora eres|actua como|finge que eres|"
+        r"modo desarrollador|modo sin restricciones|"
+        r"cambia (?:tu|de) rol|revela (?:tu|el) prompt)\b"
+    ),
 }
 PROMPT_INJECTION_WARNING_THRESHOLD = 3
+_SUSPICIOUS_INPUT_MAX_KEYS = 10000
 _SUSPICIOUS_INPUT_COUNTER: Counter[str] = Counter()
 
 
@@ -130,6 +138,8 @@ def sanitize_llm_input(text: str, session_id: str | None = None, max_length: int
 
     if detected_categories:
         session_key = session_id or "unknown-session"
+        if len(_SUSPICIOUS_INPUT_COUNTER) >= _SUSPICIOUS_INPUT_MAX_KEYS:
+            _SUSPICIOUS_INPUT_COUNTER.clear()
         _SUSPICIOUS_INPUT_COUNTER[session_key] += len(detected_categories)
         logger.warning(
             "Prompt injection neutralized for session=%s categories=%s count=%s",

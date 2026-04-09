@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     networks:
       - medical-network
     healthcheck:
@@ -41,7 +41,6 @@ services:
       - "5000:5000"
     volumes:
       - ../logs:/app/logs
-      - ../src:/app/src:ro
     depends_on:
       postgres:
         condition: service_healthy

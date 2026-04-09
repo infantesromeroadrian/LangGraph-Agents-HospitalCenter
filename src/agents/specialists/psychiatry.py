@@ -26,23 +26,3 @@ class PsychiatryAgent(BaseMedicalAgent):
         from src.config.prompts import get_specialty_prompt
 
         return get_specialty_prompt("psiquiatria")
-
-    def _get_evaluation_criteria(self) -> list:
-        """
-        Retorna criterios de evaluación para psiquiatría.
-
-        Returns:
-            Lista de criterios psiquiátricos
-        """
-        return [
-            "Depresión y trastornos del ánimo",
-            "Ansiedad y trastornos de ansiedad",
-            "Trastorno bipolar",
-            "Esquizofrenia y psicosis",
-            "Trastornos de la personalidad",
-            "Trastorno obsesivo-compulsivo (TOC)",
-            "Trastorno de estrés postraumático (TEPT)",
-            "Trastornos de la conducta alimentaria",
-            "Adicciones y abuso de sustancias",
-            "Ideación suicida o autolesiones",
-        ]

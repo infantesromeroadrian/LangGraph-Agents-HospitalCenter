@@ -1,9 +1,10 @@
 """Construcción del grafo médico con LangGraph."""
 
+import asyncio
 import inspect
 import logging
 from contextlib import AbstractAsyncContextManager
-from typing import Any, Literal
+from typing import Any
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.graph import END, StateGraph
@@ -60,24 +61,6 @@ def route_after_triage(state: MedicalGraphState):
         logger.info(f"ℹ️ [Router] -> Chat directo con {state['active_specialist']}")
         return "specialist_chat"
 
-
-def should_continue_conversation(_state: MedicalGraphState) -> Literal["end"]:
-    """
-    Decide si la conversación debe continuar.
-
-    The conversation should END after each specialist response.
-    The next user message will start a new graph execution.
-
-    Args:
-        state: Estado actual
-
-    Returns:
-        Always "end" - wait for next user message
-    """
-    # Always end the graph execution after a response
-    # The next user message will trigger a new graph execution
-    logger.info("ℹ️ [Router] -> Finalizando turno de conversación")
-    return "end"
 
 
 async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
@@ -172,18 +155,23 @@ class MedicalGraphManager:
         self.graph: Any = None
         self._checkpointer: AsyncPostgresSaver | None = None
         self._checkpointer_context: AbstractAsyncContextManager[AsyncPostgresSaver] | None = None
-        logger.info("ℹ️ [GraphManager] Inicializado")
+        self._init_lock: asyncio.Lock = asyncio.Lock()
+        logger.info("[GraphManager] Initialized")
 
     async def initialize(self):
         """Inicializa el grafo."""
-        if self.graph is None:
+        if self.graph is not None:
+            return
+        async with self._init_lock:
+            if self.graph is not None:
+                return
             try:
                 (
                     self._checkpointer,
                     self._checkpointer_context,
                 ) = await create_postgres_checkpointer()
                 self.graph = await create_medical_graph(self._checkpointer)
-                logger.info("✅ [GraphManager] Grafo inicializado")
+                logger.info("[GraphManager] Graph initialized")
             except Exception:
                 await self.close()
                 raise
@@ -221,7 +209,8 @@ class MedicalGraphManager:
             Estado final
         """
         graph = await self.get_graph()
-        assert graph is not None
+        if graph is None:
+            raise RuntimeError("Medical graph not initialized")
         result = await graph.ainvoke(state, config)
         return result
 
@@ -237,7 +226,8 @@ class MedicalGraphManager:
             Eventos del grafo
         """
         graph = await self.get_graph()
-        assert graph is not None
+        if graph is None:
+            raise RuntimeError("Medical graph not initialized")
         async for event in graph.astream(state, config):
             yield event
 

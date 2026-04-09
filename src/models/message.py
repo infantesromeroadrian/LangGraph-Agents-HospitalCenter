@@ -5,8 +5,6 @@ from datetime import UTC, datetime
 from typing import Any, Literal, Optional
 from uuid import UUID, uuid4
 
-from src.utils.validators import format_user_input_for_llm
-
 
 @dataclass
 class Message:
@@ -49,7 +47,7 @@ class Message:
 
     def to_langchain_format(self) -> dict:
         """Convierte a formato compatible con OpenAI/LangChain."""
-        content = format_user_input_for_llm(self.content) if self.role == "user" else self.content
+        content = self.content
         attachments = self.get_image_attachments()
         if not attachments:
             return {"role": self.role, "content": content}

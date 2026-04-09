@@ -202,8 +202,10 @@ markers = [
     "integration: Integration tests",
     "e2e: End-to-end tests",
     "slow: Slow tests",
+    "asyncio: Async tests",
 ]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 log_cli = true
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s"
@@ -212,26 +214,6 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
 ]
-
-# ============================================================================
-# BLACK - Formatting (legacy, Ruff replaces this)
-# ============================================================================
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  \.git
-  | \.mypy_cache
-  | \.pytest_cache
-  | \.ruff_cache
-  | __pycache__
-  | venv
-  | \.venv
-  | logs
-)/
-'''
 
 # ============================================================================
 # COVERAGE

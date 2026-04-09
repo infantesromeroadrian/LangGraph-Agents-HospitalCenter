@@ -26,23 +26,3 @@ class OncologyAgent(BaseMedicalAgent):
         from src.config.prompts import get_specialty_prompt
 
         return get_specialty_prompt("oncologia")
-
-    def _get_evaluation_criteria(self) -> list:
-        """
-        Retorna criterios de evaluación para oncología.
-
-        Returns:
-            Lista de criterios oncológicos
-        """
-        return [
-            "Sospecha de cáncer o tumor",
-            "Pérdida de peso inexplicable",
-            "Síntomas B (fiebre, sudores nocturnos, pérdida de peso)",
-            "Nódulos o masas palpables",
-            "Sangrado anormal",
-            "Cambios en lunares (melanoma)",
-            "Fatiga extrema persistente",
-            "Antecedentes familiares de cáncer",
-            "Seguimiento de tratamiento oncológico",
-            "Dolor persistente sin causa clara",
-        ]

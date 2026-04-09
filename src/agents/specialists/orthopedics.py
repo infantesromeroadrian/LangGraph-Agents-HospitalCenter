@@ -26,23 +26,3 @@ class OrthopedicsAgent(BaseMedicalAgent):
         from src.config.prompts import get_specialty_prompt
 
         return get_specialty_prompt("traumatologia")
-
-    def _get_evaluation_criteria(self) -> list:
-        """
-        Retorna criterios de evaluación para traumatología.
-
-        Returns:
-            Lista de criterios ortopédicos
-        """
-        return [
-            "Fracturas óseas",
-            "Esguinces y luxaciones",
-            "Dolor articular (rodilla, cadera, hombro)",
-            "Lesiones deportivas",
-            "Problemas de columna vertebral",
-            "Hernias discales",
-            "Artrosis y artritis",
-            "Lesiones de ligamentos",
-            "Tendinitis y bursitis",
-            "Deformidades óseas",
-        ]

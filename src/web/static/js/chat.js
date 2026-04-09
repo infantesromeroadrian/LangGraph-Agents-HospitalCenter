@@ -200,7 +200,12 @@ function formatMessageContent(content) {
     // Convert links
     formatted = formatted.replace(
         /\[([^\]]+)\]\(([^)]+)\)/g,
-        '<a href="$2" target="_blank" rel="noopener">$1</a>'
+        function(_match, text, url) {
+            if (/^https?:\/\//i.test(url)) {
+                return '<a href="' + url + '" target="_blank" rel="noopener">' + text + '</a>';
+            }
+            return text;
+        }
     );
 
     return formatted;
