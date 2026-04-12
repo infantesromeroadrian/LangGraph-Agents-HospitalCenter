@@ -4,6 +4,17 @@ Multi-agent medical consultation system with parallel specialist evaluation, rea
 
 ![Patient Admission](docs/screenshots/landing.png)
 
+## Screenshots
+
+### Dashboard -- Consultation Room
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Triage Agent -- Emergency Protocol
+![Triage](docs/screenshots/triage.png)
+
+### Full Platform View
+![Full Page](docs/screenshots/fullpage.png)
+
 ## How It Works
 
 ```
