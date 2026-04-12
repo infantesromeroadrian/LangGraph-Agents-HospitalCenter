@@ -1,21 +1,43 @@
-MIT License
+Copyright (c) 2025-2026 Adrian Infantes Romero. All rights reserved.
 
-Copyright (c) 2026 Adrian Infantes
+PROPRIETARY SOFTWARE LICENSE
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software and its source code (the "Software"), including but not limited
+to the design, architecture, algorithms, visual elements, written content,
+code, assets, and documentation contained in this repository, are the
+exclusive property of Adrian Infantes Romero (the "Author").
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+NO LICENSE IS GRANTED. Unless explicit prior written permission is obtained
+from the Author, you MAY NOT:
+
+  1. Copy, clone, fork, reproduce, or redistribute the Software, in whole or
+     in part, in any form or by any means.
+  2. Modify, adapt, translate, reverse-engineer, decompile, or create
+     derivative works based on the Software.
+  3. Use the Software, or any part thereof, for personal, academic, or
+     commercial purposes.
+  4. Deploy, host, publish, or make the Software publicly available on any
+     server, domain, platform, or service.
+  5. Remove, alter, or obscure any copyright notice, attribution, branding,
+     or identifying mark contained in the Software.
+  6. Present the Software, its design, or its content as your own work or
+     under a different author's name.
+
+This Software was previously distributed under the MIT License. Effective
+from the date of this license change, all new versions, modifications, and
+additions are governed exclusively by this proprietary license. Prior copies
+obtained under the MIT License retain those rights for that specific version.
+
+For licensing inquiries, partnership proposals, or written authorization
+requests, contact the Author at infantesromeroadrian@gmail.com.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+Unauthorized use, reproduction, or distribution of this Software, or any
+portion of it, may result in civil and criminal penalties, and will be
+prosecuted to the maximum extent possible under applicable law.

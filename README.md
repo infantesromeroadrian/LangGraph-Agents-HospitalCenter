@@ -1,301 +1,169 @@
-# 🏥 LangGraph Medical Center
+# LangGraph Medical Center
 
-Sistema de agentes médicos especializados con orquestación paralela usando LangGraph, Groq (Llama/OpenAI-compatible) y PostgreSQL.
+Multi-agent medical consultation system with parallel specialist evaluation, real-time streaming, and persistent memory. Built with LangGraph, FastAPI, PostgreSQL, and WebSocket.
 
-## 🎯 Características Principales
+![Patient Admission](docs/screenshots/landing.png)
 
-- **Orquestación Paralela**: 8 agentes especialistas evalúan casos simultáneamente
-- **Memoria Persistente**: PostgreSQL para conversaciones y checkpointing de LangGraph
-- **Streaming en Tiempo Real**: WebSocket para respuestas en tiempo real
-- **Visualización de Grafo**: Muestra el flujo de agentes en D3.js
-- **LLM LLM (Groq-compatible)**: Modelo de última generación para interacciones médicas
-- **Arquitectura Modular**: Código limpio, separado por responsabilidades
-
-## 🏗️ Arquitectura del Sistema
+## How It Works
 
 ```
-Usuario → Triaje → [8 Especialistas en Paralelo] → Consenso → Especialista Seleccionado
-                                                                      ↓
-                                                              Chat Conversacional
+Patient -> Triage -> [8 Specialists in Parallel] -> Consensus -> Selected Specialist
+                                                                        |
+                                                                  Conversational Chat
 ```
 
-### Especialistas Médicos
+A patient describes their symptoms. The triage agent analyzes urgency and routes to **8 medical specialists** evaluating simultaneously. A consensus agent selects the best match, then the patient enters a conversational chat with that specialist -- all backed by persistent PostgreSQL memory and LangGraph checkpointing.
 
-1. **Medicina General** - Atención primaria y síntomas generales
-2. **Cardiología** - Problemas cardiovasculares
-3. **Neurología** - Sistema nervioso y cerebral
-4. **Pediatría** - Salud infantil y adolescentes
-5. **Dermatología** - Piel, cabello y uñas
-6. **Traumatología** - Huesos, articulaciones y lesiones
-7. **Psiquiatría** - Salud mental
-8. **Oncología** - Detección y seguimiento de cáncer
+### Medical Specialists
 
-## 📋 Requisitos Previos
+| # | Specialist | Scope |
+|---|-----------|-------|
+| 1 | General Medicine | Primary care, general symptoms |
+| 2 | Cardiology | Cardiovascular |
+| 3 | Neurology | Nervous system |
+| 4 | Pediatrics | Children and adolescents |
+| 5 | Dermatology | Skin, hair, nails |
+| 6 | Traumatology | Bones, joints, injuries |
+| 7 | Psychiatry | Mental health |
+| 8 | Oncology | Cancer detection and follow-up |
 
-- Docker & Docker Compose
-- Python 3.11+
-- PostgreSQL 15+
-- Groq API Key (or OpenAI-compatible endpoint)
+## Tech Stack
 
-## 🚀 Instalación y Ejecución
+| Layer | Technology |
+|-------|-----------|
+| Orchestration | LangGraph 1.0 (parallel state machine) |
+| LLM | Groq API (Llama 4 Scout / OpenAI-compatible) |
+| Backend | FastAPI + Uvicorn (async, 4 workers) |
+| Database | PostgreSQL 15 (conversations + LangGraph checkpoints) |
+| Real-time | WebSocket (Socket.IO) |
+| Auth | JWT + HMAC session cookies, HIPAA/GDPR consent |
+| Frontend | Jinja2 templates + D3.js graph visualization |
+| Packaging | UV (fast Python package manager) |
+| Deploy | Docker Compose (multi-stage, non-root) |
 
-### 1. Clonar el repositorio
+## Architecture
+
+```
+src/
+  agents/                   # Medical agents
+    base_agent.py           # Abstract base class
+    triage_agent.py         # Triage routing
+    consensus_agent.py      # Specialist selection
+    agent_factory.py        # Agent factory
+    specialists/            # 8 specialist implementations
+  graph/                    # LangGraph orchestration
+    state.py                # Graph state schema
+    nodes.py                # Node functions
+    medical_graph.py        # Graph construction
+  memory/                   # Conversation persistence
+    conversation_memory.py
+  models/                   # Pydantic data models
+  services/                 # LLM + Database services
+  web/                      # FastAPI app
+    main.py                 # Lifespan, middleware, CORS
+    routers/                # REST endpoints
+    websocket/              # Socket.IO chat handler
+    templates/              # Jinja2 HTML
+    static/                 # CSS, JS, D3 visualization
+  config/                   # Pydantic settings + agent prompts
+  utils/                    # Logging, validators
+tests/                      # pytest (70%+ coverage enforced)
+docker/                     # Dockerfile + docker-compose.yml
+```
+
+**48 source files, ~6300 LOC.** Strict mypy, ruff linting, parametrized SQL (zero injection), retry with exponential backoff (tenacity), structured logging throughout.
+
+## Quick Start
+
+### Docker (recommended)
 
 ```bash
-git clone <repository-url>
-cd langgraph-medical-center
-```
+git clone https://github.com/infantesromeroadrian/LangGraph-Agents-HospitalCenter.git
+cd LangGraph-Agents-HospitalCenter
+cp .env.example .env
+# Edit .env with your Groq API key
 
-### 2. Configurar variables de entorno
-
-Copiar `env.example` a `.env` y configurar:
-
-```bash
-cp env.example .env
-```
-
-Editar `.env` con tus credenciales:
-
-```env
-OPENAI_API_KEY=tu_api_key_aqui
-OPENAI_BASE_URL=https://api.groq.com/openai/v1  # or https://api.openai.com/v1
-OPENAI_MODEL=llama-3.3-70b-versatile             # or gpt-4o, etc.
-APP_SECRET_KEY=tu_secret_key_segura
-```
-
-### 3. Ejecutar con Docker Compose
-
-```bash
 cd docker
-docker-compose up --build
+docker compose up --build
 ```
 
-### 4. Acceder a la aplicación
-
-- **Web UI**: http://localhost:5000
-- **Health Check**: http://localhost:5000/health
-- **PgAdmin** (dev): http://localhost:5050
-
-## 🧪 Testing
-
-Ejecutar todos los tests:
+### Local (with UV)
 
 ```bash
-pytest tests/ -v --cov=src
+# Requires PostgreSQL running on localhost:5432
+cp .env.example .env
+# Edit .env with your credentials
+
+uv sync
+uv run python -m uvicorn src.web.main:app --host 0.0.0.0 --port 5000
 ```
 
-Tests específicos:
+### Access
+
+| Service | URL |
+|---------|-----|
+| Web UI | http://localhost:5000 |
+| Swagger API | http://localhost:5000/docs |
+| Health Check | http://localhost:5000/health |
+| PgAdmin (dev) | http://localhost:5050 |
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `OPENAI_API_KEY` | Groq/OpenAI API key | Yes |
+| `OPENAI_BASE_URL` | API endpoint | Yes |
+| `OPENAI_MODEL` | LLM model name | Yes |
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `APP_SECRET_KEY` | Session signing key (32+ chars) | Yes |
+| `JWT_SECRET_KEY` | JWT signing key | Yes |
+
+See `.env.example` for the full list with defaults.
+
+## API
+
+### REST
+
+- `POST /api/patients` -- Register patient (returns auth cookie)
+- `POST /api/sessions` -- Start consultation session
+- `GET /api/sessions/{id}/messages` -- Retrieve message history
+- `GET /health` -- Service health + dependency status
+
+### WebSocket Events
+
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `join_session` | Client -> Server | Join consultation |
+| `send_message` | Client -> Server | Send symptoms/message |
+| `agent_response` | Server -> Client | Specialist response |
+| `graph_update` | Server -> Client | Graph state change |
+| `thinking` | Server -> Client | Processing indicator |
+
+## Testing
 
 ```bash
-# Tests unitarios
-pytest tests/test_agents.py -v
-
-# Tests del grafo
-pytest tests/test_graph.py -v
-
-# Tests de memoria
-pytest tests/test_memory.py -v
+uv run pytest tests/ -v --cov=src    # Full suite
+uv run pytest tests/test_agents.py   # Agent tests
+uv run pytest tests/test_graph.py    # Graph tests
+uv run pytest tests/test_memory.py   # Memory tests
 ```
 
-## 📁 Estructura del Proyecto
+## Security
 
-```
-langgraph-medical-center/
-├── src/                          # Código fuente
-│   ├── agents/                   # Agentes médicos
-│   │   ├── base_agent.py        # Clase base abstracta
-│   │   ├── triage_agent.py      # Agente de triaje
-│   │   ├── consensus_agent.py   # Agente de consenso
-│   │   ├── agent_factory.py     # Factory de agentes
-│   │   └── specialists/         # 8 especialistas
-│   ├── graph/                    # LangGraph orchestration
-│   │   ├── state.py             # Estado del grafo
-│   │   ├── nodes.py             # Funciones de nodos
-│   │   └── medical_graph.py     # Construcción del grafo
-│   ├── memory/                   # Sistema de memoria
-│   │   └── conversation_memory.py
-│   ├── models/                   # Modelos de datos
-│   │   ├── message.py
-│   │   ├── evaluation.py
-│   │   └── session.py
-│   ├── services/                 # Servicios
-│   │   ├── llm_service.py       # Servicio LLM (OpenAI/Groq)
-│   │   └── database_service.py  # Servicio PostgreSQL
-│   ├── web/                      # Interfaz Flask
-│   │   ├── app.py               # Aplicación principal
-│   │   ├── templates/           # Templates HTML
-│   │   └── static/              # CSS & JavaScript
-│   ├── config/                   # Configuración
-│   │   ├── settings.py          # Settings con Pydantic
-│   │   └── prompts.py           # Prompts de agentes
-│   └── utils/                    # Utilidades
-│       ├── logging_config.py
-│       └── validators.py
-├── tests/                        # Tests con pytest
-├── docker/                       # Docker files
-│   ├── Dockerfile
-│   ├── docker-compose.yml
-│   └── init-db.sql
-├── docs/                         # Documentación
-└── requirements.txt              # Dependencias Python
-```
+- Parametrized SQL queries (zero injection surface)
+- JWT + HMAC cookie authentication
+- Configuration validation at startup (rejects placeholder secrets)
+- Non-root Docker containers
+- Security headers (CSP, X-Frame-Options, CORS)
+- Rate limiting (120 req/min read, 30 req/min write)
+- HIPAA/GDPR consent flow before data collection
 
-## 🔧 Configuración Avanzada
+## License
 
-### Variables de Entorno
+Copyright (c) 2025-2026 Adrian Infantes Romero. **All rights reserved.**
 
-| Variable | Descripción | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | API Key (Groq/OpenAI-compatible) | *requerido* |
-| `OPENAI_MODEL` | Modelo LLM | `gpt-4o` |
-| `DATABASE_URL` | URL de PostgreSQL | Ver env.example |
-| `FLASK_PORT` | Puerto de Flask | `5000` |
-| `FLASK_DEBUG` | Modo debug | `False` |
-| `RECURSION_LIMIT` | Límite del grafo | `50` |
-| `LOG_LEVEL` | Nivel de logging | `INFO` |
-
-### Base de Datos
-
-El sistema crea automáticamente las siguientes tablas:
-
-- `checkpoints` - Estado de LangGraph
-- `checkpoint_writes` - Escrituras pendientes
-- `sessions` - Sesiones de conversación
-- `messages` - Historial de mensajes
-- `specialist_evaluations` - Evaluaciones de especialistas
-
-## 📖 Uso del Sistema
-
-### Flujo de Conversación
-
-1. **Usuario inicia consulta**: "Tengo dolor en el pecho"
-2. **Triaje analiza**: Identifica síntomas y urgencia
-3. **Evaluación Paralela**: 8 especialistas evalúan en paralelo
-4. **Consenso decide**: Selecciona el mejor especialista
-5. **Chat especializado**: Conversación con el especialista asignado
-6. **Memoria persistente**: Todo se guarda en PostgreSQL
-
-### API Endpoints
-
-#### REST API
-
-- `POST /api/sessions` - Crear nueva sesión
-- `GET /api/sessions/<id>` - Obtener información de sesión
-- `GET /api/sessions/<id>/messages` - Obtener mensajes
-- `GET /health` - Health check
-
-#### WebSocket Events
-
-- `connect` - Conexión establecida
-- `join_session` - Unirse a una sesión
-- `send_message` - Enviar mensaje al sistema
-- `agent_response` - Respuesta de un agente
-- `graph_update` - Actualización del grafo
-- `thinking` - Agente procesando
-
-## 🔐 Seguridad
-
-- ✅ Contenedores non-root
-- ✅ Secrets en variables de entorno
-- ✅ Validación de inputs
-- ✅ CORS configurado
-- ✅ Rate limiting
-- ✅ Logging estructurado sin datos sensibles
-
-## 🛠️ Desarrollo
-
-### Setup Local
-
-```bash
-# Crear entorno virtual
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Ejecutar tests
-pytest tests/ -v
-```
-
-### Linting y Formateo
-
-```bash
-# Black
-black src/ tests/
-
-# Ruff
-ruff check src/ tests/
-
-# Type checking
-mypy src/
-```
-
-## 📊 Métricas de Rendimiento
-
-- **Tiempo de triaje**: < 2 segundos
-- **Evaluación paralela (8 especialistas)**: < 3 segundos
-- **Respuesta de chat**: < 2 segundos
-- **Persistencia PostgreSQL**: < 100ms
-- **WebSocket latency**: < 50ms
-
-## 🐛 Troubleshooting
-
-### Error: "Database connection failed"
-
-```bash
-# Verificar que PostgreSQL esté corriendo
-docker-compose ps
-
-# Reiniciar servicios
-docker-compose restart postgres
-```
-
-### Error: "OpenAI API Key invalid"
-
-Verificar que `OPENAI_API_KEY` en `.env` sea válida y que `OPENAI_BASE_URL` apunte al endpoint correcto (Groq, OpenAI, etc.).
-
-### Error: "Port 5000 already in use"
-
-```bash
-# Cambiar puerto en .env
-FLASK_PORT=8000
-
-# O detener el proceso usando el puerto
-lsof -ti:5000 | xargs kill -9  # macOS/Linux
-```
-
-## 📚 Recursos
-
-- [LangGraph Documentation](https://docs.langchain.com/oss/python/langgraph/)
-- [Groq API Reference](https://console.groq.com/docs/api-reference)
-- [Flask Documentation](https://flask.palletsprojects.com/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-
-## 🤝 Contribuir
-
-1. Fork el repositorio
-2. Crear feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
-4. Push al branch (`git push origin feature/AmazingFeature`)
-5. Abrir Pull Request
-
-## 📝 Licencia
-
-MIT License. Ver [LICENSE](LICENSE) para más detalles.
-
-## 👥 Autores
-
-- [Adrian Infantes](https://github.com/infantesromeroadrian)
-
-## 🙏 Agradecimientos
-
-- LangGraph por el framework de orquestación
-- Groq por la API LLM compatible con OpenAI
-- Comunidad open source
+This software is proprietary. See [LICENSE](LICENSE) for full terms.
 
 ---
 
-**Versión**: 1.0.0
-**Estado**: Production Ready
-**Última actualización**: 2025-12-27
+Built by [Adrian Infantes](https://github.com/infantesromeroadrian)
