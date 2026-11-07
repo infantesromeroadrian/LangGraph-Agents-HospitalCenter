@@ -1,0 +1,5 @@
+# Ejemplo de ENCRYPTION_KEY en un documento de planificación (historyMD/PLAN-AGENT.md:774),
+# presente solo en el commit inicial cb11b02 y eliminado del árbol en c21f2bf.
+# Verificado con `git log -S` (prefijo, sin imprimir el valor): no aparece en código, config,
+# tests, CI ni en ficheros locales ignorados. No se reescribe el historial.
+cb11b020a9d64aff4f133163599538731ddf1a8d:historyMD/PLAN-AGENT.md:generic-api-key:774
