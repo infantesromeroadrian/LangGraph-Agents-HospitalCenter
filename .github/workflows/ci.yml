@@ -2,164 +2,132 @@ name: CI - Lint, Test & Security
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+
+# Mínimo privilegio: ningún trabajo necesita escribir en el repositorio.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
 
 jobs:
-  # ============================================================================
-  # JOB 1: LINT & CODE QUALITY
-  # ============================================================================
   lint:
     name: Lint & Type Check
     runs-on: ubuntu-latest
-    
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: '3.12'
+          persist-credentials: false
 
-      - name: ⚡ Install uv
-        uses: astral-sh/setup-uv@v3
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: 📦 Install dependencies
-        run: |
-          uv sync --frozen
-          uv pip install ruff mypy bandit[toml] safety
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 
-      - name: 🧹 Run Ruff (linter)
-        run: |
-          source .venv/bin/activate
-          ruff check src/ tests/
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
 
-      - name: 🎨 Run Ruff (formatter check)
-        run: |
-          source .venv/bin/activate
-          ruff format --check src/ tests/
+      - name: Ruff (lint)
+        run: uv run --no-sync ruff check src/ tests/ evals/
 
-      - name: 🔍 Run mypy (type checker)
-        run: |
-          source .venv/bin/activate
-          mypy src/ --ignore-missing-imports --no-strict-optional
+      - name: Ruff (format check)
+        run: uv run --no-sync ruff format --check src/ tests/ evals/
 
-  # ============================================================================
-  # JOB 2: TESTS & COVERAGE
-  # ============================================================================
+      - name: mypy
+        run: uv run --no-sync mypy src/ --ignore-missing-imports --no-strict-optional
+
   test:
     name: Tests & Coverage
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: medical_user
-          POSTGRES_PASSWORD: medical_password
-          POSTGRES_DB: medical_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: '3.12'
+          persist-credentials: false
 
-      - name: ⚡ Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: 📦 Install dependencies
-        run: |
-          uv sync --frozen
-          uv pip install pytest pytest-cov pytest-asyncio
-
-      - name: 🧪 Run pytest
-        env:
-          DATABASE_URL: postgresql://medical_user:medical_password@localhost:5432/medical_db
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          source .venv/bin/activate
-          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term-missing
-        continue-on-error: false  # Tests DEBEN pasar
-
-      - name: 📊 Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          python-version: ${{ env.PYTHON_VERSION }}
 
-  # ============================================================================
-  # JOB 3: SECURITY SCAN
-  # ============================================================================
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      # La suite no usa red ni claves reales (tests/conftest.py fija valores ficticios).
+      # El umbral de cobertura (--cov-fail-under) está definido en pyproject.toml.
+      - name: pytest with coverage
+        run: uv run --no-sync pytest tests/ --cov-report=xml --cov-report=term
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          uv run --no-sync coverage report --format=markdown --skip-covered >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: ignore
+
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          python-version: '3.12'
+          persist-credentials: false
 
-      - name: ⚡ Install uv
-        uses: astral-sh/setup-uv@v3
-
-      - name: 📦 Install dependencies
-        run: |
-          uv sync --frozen
-          uv pip install bandit[toml] safety
-
-      - name: 🔒 Run Bandit (security linter)
-        run: |
-          source .venv/bin/activate
-          bandit -r src/ -ll -ii
-
-      - name: 🛡️ Run Safety (dependency vulnerabilities)
-        run: |
-          source .venv/bin/activate
-          safety check --json
-
-      - name: 🔍 Run Trivy (container scan)
-        uses: aquasecurity/trivy-action@master
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          severity: 'CRITICAL,HIGH'
-          exit-code: '1'
+          python-version: ${{ env.PYTHON_VERSION }}
 
-  # ============================================================================
-  # JOB 4: DOCKER BUILD TEST
-  # ============================================================================
+      - name: Install uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Bandit (static security analysis)
+        run: uv run --no-sync bandit -r src/ -ll -ii
+
+      # Auditoría de las dependencias de producción exactas del lockfile (base OSV/PyPI).
+      - name: pip-audit (dependency vulnerabilities)
+        run: |
+          uv export --frozen --no-dev --no-hashes --no-emit-project -o "$RUNNER_TEMP/requirements.txt"
+          uv run --no-sync pip-audit -r "$RUNNER_TEMP/requirements.txt" --no-deps --disable-pip
+
   docker:
     name: Docker Build Test
     runs-on: ubuntu-latest
-    
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - name: 🐳 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: 🏗️ Build Docker image
-        uses: docker/build-push-action@v5
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ./docker/Dockerfile
@@ -169,27 +137,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 🧪 Test Docker image
+      - name: Smoke test image
         run: |
-          docker run --rm langgraph-medical:test python -c "import sys; print(f'Python {sys.version}')"
+          docker run --rm -e OPENAI_API_KEY=ci-not-real langgraph-medical:test \
+            python -c "import src.web.main; print('import ok')"
 
-  # ============================================================================
-  # JOB 5: BUILD SUCCESS NOTIFICATION
-  # ============================================================================
   notify:
     name: Build Status
     runs-on: ubuntu-latest
     needs: [lint, test, security, docker]
     if: always()
-    
     steps:
-      - name: ✅ All checks passed
-        if: ${{ needs.lint.result == 'success' && needs.test.result == 'success' && needs.security.result == 'success' && needs.docker.result == 'success' }}
+      - name: Gate
+        env:
+          RESULTS: ${{ needs.lint.result }} ${{ needs.test.result }} ${{ needs.security.result }} ${{ needs.docker.result }}
         run: |
-          echo "🎉 All CI checks passed! Ready to deploy."
-
-      - name: ❌ Some checks failed
-        if: ${{ needs.lint.result != 'success' || needs.test.result != 'success' || needs.security.result != 'success' || needs.docker.result != 'success' }}
-        run: |
-          echo "⚠️ Some CI checks failed. Review the logs above."
-          exit 1
+          echo "Resultados (lint test security docker): $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "Hay comprobaciones fallidas."
+              exit 1
+            fi
+          done
+          echo "Todas las comprobaciones han pasado."
