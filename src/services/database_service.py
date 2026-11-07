@@ -259,6 +259,41 @@ class DatabaseService:
 
     # ==================== Operaciones de Limpieza ====================
 
+    # Sentencias fijas (sin interpolación) para el estado del grafo de LangGraph
+    CHECKPOINT_DELETES = (
+        ("checkpoint_writes", "DELETE FROM checkpoint_writes WHERE thread_id = ANY($1::text[])"),
+        ("checkpoint_blobs", "DELETE FROM checkpoint_blobs WHERE thread_id = ANY($1::text[])"),
+        ("checkpoints", "DELETE FROM checkpoints WHERE thread_id = ANY($1::text[])"),
+    )
+
+    async def _delete_checkpoints(self, conn, thread_ids: list[str]) -> None:
+        """Borra el estado del grafo (contiene mensajes) de los hilos indicados."""
+        for table, statement in self.CHECKPOINT_DELETES:
+            if await conn.fetchval("SELECT to_regclass($1)", table):
+                await conn.execute(statement, thread_ids)
+
+    async def delete_session_data(self, session_id: UUID) -> bool:
+        """Derecho de supresión: borra sesión, mensajes, evaluaciones y checkpoints del grafo."""
+        async with self.get_connection() as conn, conn.transaction():
+            await self._delete_checkpoints(conn, [f"thread_{session_id}"])
+            result = await conn.execute("DELETE FROM sessions WHERE session_id = $1", session_id)
+        return int(result.split()[-1]) > 0
+
+    async def purge_expired_sessions(self, days: int) -> int:
+        """Retención limitada: borra sesiones (activas o no) sin actividad en `days` días."""
+        async with self.get_connection() as conn, conn.transaction():
+            rows = await conn.fetch(
+                "SELECT session_id FROM sessions WHERE updated_at < NOW() - make_interval(days => $1)",
+                days,
+            )
+            if not rows:
+                return 0
+            ids = [r["session_id"] for r in rows]
+            await self._delete_checkpoints(conn, [f"thread_{i}" for i in ids])
+            await conn.execute("DELETE FROM sessions WHERE session_id = ANY($1::uuid[])", ids)
+        logger.info("ℹ️ Retención: %d sesiones caducadas eliminadas", len(ids))
+        return len(ids)
+
     async def cleanup_old_sessions(self, days: int = 30):
         """Limpia sesiones antiguas inactivas."""
         async with self.get_connection() as conn:

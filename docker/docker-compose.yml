@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-medical_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-this-postgres-password}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}
       POSTGRES_DB: ${POSTGRES_DB:-medical_db}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
@@ -33,12 +33,13 @@ services:
     env_file:
       - ../.env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-medical_user}:${POSTGRES_PASSWORD:-change-this-postgres-password}@postgres:5432/${POSTGRES_DB:-medical_db}
-      CHECKPOINT_DB_URL: postgresql://${POSTGRES_USER:-medical_user}:${POSTGRES_PASSWORD:-change-this-postgres-password}@postgres:5432/${POSTGRES_DB:-medical_db}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-medical_user}:${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}@postgres:5432/${POSTGRES_DB:-medical_db}
+      CHECKPOINT_DB_URL: postgresql://${POSTGRES_USER:-medical_user}:${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env}@postgres:5432/${POSTGRES_DB:-medical_db}
       APP_HOST: 0.0.0.0
       APP_PORT: 5000
     ports:
-      - "5000:5000"
+      # Solo localhost: publicar detrás de un proxy inverso con TLS
+      - "127.0.0.1:5000:5000"
     volumes:
       - ../logs:/app/logs
     depends_on:
@@ -54,15 +55,15 @@ services:
       start_period: 40s
 
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:9.0
     container_name: medical-pgadmin
     restart: unless-stopped
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-dev-admin@medical.local}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-change-this-pgadmin-password}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?define PGADMIN_DEFAULT_PASSWORD en .env}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:

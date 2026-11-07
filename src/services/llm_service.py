@@ -109,7 +109,7 @@ class LLMService:
 
         except json.JSONDecodeError as e:
             logger.error(f"❌ Error parseando JSON: {e!s}")
-            logger.debug(f"🐞 Respuesta recibida: {response}")
+            logger.debug("Respuesta del LLM no válida como JSON (%d caracteres)", len(response))
             raise ValueError(f"LLM no retornó JSON válido: {e!s}") from e
 
     async def stream_complete(

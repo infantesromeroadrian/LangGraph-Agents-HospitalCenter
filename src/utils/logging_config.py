@@ -1,11 +1,29 @@
 """Configuración de logging para el sistema."""
 
 import logging
+import re
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from src.config.settings import settings
+
+_REDACTIONS = (
+    (re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+"), "[email]"),
+    (re.compile(r"\b[XYZ]?\d{7,8}[A-Z]\b", re.IGNORECASE), "[dni]"),
+    (re.compile(r"(?<!\d)(?:\+34\s?)?[6-9]\d{2}[\s.-]?\d{3}[\s.-]?\d{3}(?!\d)"), "[telefono]"),
+)
+
+
+class RedactingFilter(logging.Filter):
+    """Última barrera: elimina correos, DNI/NIE y teléfonos de cualquier línea de log."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        for pattern, replacement in _REDACTIONS:
+            message = pattern.sub(replacement, message)
+        record.msg, record.args = message, None
+        return True
 
 
 class EmojiFormatter(logging.Formatter):
@@ -56,6 +74,9 @@ def setup_logging():
     file_handler.setLevel(getattr(logging, settings.LOG_LEVEL))
     file_formatter = logging.Formatter(log_format, datefmt=date_format)
     file_handler.setFormatter(file_formatter)
+
+    console_handler.addFilter(RedactingFilter())
+    file_handler.addFilter(RedactingFilter())
 
     # Añadir handlers
     root_logger.addHandler(console_handler)

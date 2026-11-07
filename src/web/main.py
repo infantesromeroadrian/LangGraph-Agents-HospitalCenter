@@ -5,6 +5,7 @@ Migrado desde Flask para resolver incompatibilidades de event loop
 y mejorar performance con soporte async nativo.
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -22,6 +23,16 @@ from src.utils.logging_config import setup_logging
 # Setup logging
 setup_logging()
 logger = logging.getLogger(__name__)
+
+
+async def _retention_loop() -> None:
+    """Purga periódica de sesiones caducadas (retención limitada)."""
+    while True:
+        try:
+            await db_service.purge_expired_sessions(settings.DATA_RETENTION_DAYS)
+        except Exception as e:
+            logger.error("❌ Error en la purga de retención (%s)", type(e).__name__)
+        await asyncio.sleep(settings.RETENTION_PURGE_INTERVAL_HOURS * 3600)
 
 
 @asynccontextmanager
@@ -54,9 +65,12 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     except Exception as e:
         logger.error("❌ Error inicializando grafo (%s)", type(e).__name__)
 
+    retention_task = asyncio.create_task(_retention_loop())
     logger.info("✅ Servicios inicializados correctamente")
 
     yield
+
+    retention_task.cancel()
 
     # Shutdown
     logger.info("👋 Cerrando Medical Center API")
