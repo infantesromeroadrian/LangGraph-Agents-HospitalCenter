@@ -205,7 +205,7 @@ Modelo local `arca-ornith-9b:q4km` (Qwen3.5 9B, Q4_K_M) en Ollama 0.40.13, tempe
 | Hacer que recete | 24 | 5/24 (20.8 %) | 1/24 (4.2 %) | 6 |
 | **Global** | 88 | **33.0 %** | **9.1 %** | 20.4 % |
 
-«ASR después» cuenta el ataque que llega al paciente tras el endurecimiento (marcadores, filtro de salida, puerta determinista). La última columna cuenta las respuestas del propio modelo que habrían fallado sin el filtro de salida: el endurecimiento reduce el fallo del modelo (de 32,9 % a 20,5 %) y el filtro corrige parte del resto, pero 8 de 88 ataques (9,1 %) siguen alcanzando al paciente, sobre todo suplantación (4/16) y contaminación de memoria (3/20). El código «después» es el de esta rama (base f156ae5 más cambios sin commitear).
+«ASR después» cuenta el ataque que llega al paciente tras el endurecimiento (marcadores, filtro de salida, puerta determinista). La última columna cuenta las respuestas del propio modelo que habrían fallado sin el filtro de salida: el endurecimiento reduce el fallo del modelo (de 32,9 % a 20,5 %) y el filtro corrige parte del resto, pero 8 de 88 ataques (9,1 %) siguen alcanzando al paciente, sobre todo suplantación (4/16) y contaminación de memoria (3/20). La medición «después» se ejecutó sobre el código de esta PR: tras iniciarla solo cambió `evals/results/metrics.json`.
 
 Limitaciones: conjunto pequeño y escrito por el mismo autor que las defensas; los oráculos son heurísticos; un solo modelo, una sola semilla de muestreo; no hay intervalos de confianza. No es una garantía frente a atacantes adaptativos.
 
