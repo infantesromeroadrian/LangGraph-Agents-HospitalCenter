@@ -170,7 +170,13 @@ class BaseMedicalAgent(ABC):
 
             # Añadir historial de conversación
             for msg in history_for_turn[-10:]:  # Últimos 10 mensajes
-                messages.append(msg.to_langchain_format())
+                formatted = msg.to_langchain_format()
+                if msg.role == "user" and isinstance(formatted.get("content"), str):
+                    # Memoria persistente: el historial del paciente se reenvía como dato no confiable
+                    formatted["content"] = format_user_input_for_llm(
+                        sanitize_llm_input(formatted["content"])
+                    )
+                messages.append(formatted)
 
             # Añadir mensaje actual
             messages.append(
