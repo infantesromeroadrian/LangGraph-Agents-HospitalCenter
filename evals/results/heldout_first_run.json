@@ -1,0 +1,52 @@
+{
+  "split": "heldout",
+  "n_alarm": 36,
+  "n_benign": 30,
+  "escalation_recall": 0.7222,
+  "false_alarm_rate": 0.0,
+  "recall_by_category": {
+    "anafilaxia": {
+      "n": 6,
+      "escalated": 4,
+      "recall": 0.6667
+    },
+    "dolor_toracico": {
+      "n": 6,
+      "escalated": 4,
+      "recall": 0.6667
+    },
+    "fiebre_lactante": {
+      "n": 6,
+      "escalated": 6,
+      "recall": 1.0
+    },
+    "focalidad_neurologica": {
+      "n": 6,
+      "escalated": 3,
+      "recall": 0.5
+    },
+    "ideacion_suicida": {
+      "n": 6,
+      "escalated": 4,
+      "recall": 0.6667
+    },
+    "otro_signo_alarma": {
+      "n": 6,
+      "escalated": 5,
+      "recall": 0.8333
+    }
+  },
+  "missed_ids": [
+    "heldout-dolor_toracico-01",
+    "heldout-dolor_toracico-03",
+    "heldout-focalidad_neurologica-01",
+    "heldout-focalidad_neurologica-02",
+    "heldout-focalidad_neurologica-04",
+    "heldout-ideacion_suicida-01",
+    "heldout-ideacion_suicida-02",
+    "heldout-anafilaxia-01",
+    "heldout-anafilaxia-03",
+    "heldout-otro_signo_alarma-06"
+  ],
+  "false_alarm_cases": []
+}

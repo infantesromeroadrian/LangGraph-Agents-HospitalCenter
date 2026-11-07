@@ -8,6 +8,7 @@ from src.agents.triage_agent import TriageAgent
 from src.graph.state import MedicalGraphState
 from src.models.evaluation import SpecialistEvaluation
 from src.models.message import Message
+from src.safety import apply_output_guard, build_emergency_message, detect_red_flags
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,35 @@ logger = logging.getLogger(__name__)
 def _is_emergency_state(state: MedicalGraphState) -> bool:
     """Determina si el estado actual corresponde a una urgencia."""
     return state.get("triage_data", {}).get("urgency", "").lower() == "urgente"
+
+
+RED_FLAG_LOOKBACK_USER_MESSAGES = 3
+
+
+def _recent_user_text(messages: list[Message]) -> str:
+    """Texto de los últimos mensajes del paciente (sin fiarse de ningún campo del estado)."""
+    user_texts = [m.content for m in messages if m.role == "user" and isinstance(m.content, str)]
+    return "\n".join(user_texts[-RED_FLAG_LOOKBACK_USER_MESSAGES:])
+
+
+async def safety_gate_node(state: MedicalGraphState) -> dict:
+    """Puerta de seguridad determinista: se ejecuta ANTES de triaje y especialistas.
+
+    No usa LLM ni lee ningún campo del estado que no sean los mensajes del paciente, así que
+    ni el modelo ni el texto del usuario (p. ej. "no escales", "ignora lo anterior") pueden
+    desactivarla. Cualquier signo de alarma deriva a `emergency_response` con el 112.
+    """
+    text = _recent_user_text(state["messages"])
+    flags = detect_red_flags(text)
+    categories = [f.category for f in flags]
+    if categories:
+        logger.warning("⚠️ [SafetyGate] Signos de alarma detectados: %s", categories)
+    return {
+        "metadata": {
+            "red_flags": categories,
+            "safety_gate": "escalated" if categories else "clear",
+        },
+    }
 
 
 async def triage_node(state: MedicalGraphState) -> dict:
@@ -96,79 +126,41 @@ async def triage_node(state: MedicalGraphState) -> dict:
 
 
 async def emergency_response_node(state: MedicalGraphState) -> dict:
-    """Genera una respuesta inmediata y segura cuando el triaje detecta urgencia."""
+    """Respuesta inmediata y segura ante una urgencia.
+
+    Si la puerta determinista detectó signos de alarma, el mensaje es estático (nunca generado
+    por el LLM) e incluye el 112. Si solo el triaje con LLM marcó "urgente", se usa el mensaje
+    genérico, que también incluye el 112.
+    """
     session_id = state["session_id"]
     triage_data = state.get("triage_data", {})
-    recommended_specialties = triage_data.get("recommended_specialties", [])
-    main_symptoms = triage_data.get("main_symptoms", [])
+    gate_meta = state.get("metadata", {}) or {}
+    categories = list(gate_meta.get("red_flags", []) or [])
 
-    specialty_hint = recommended_specialties[0] if recommended_specialties else "medicina_general"
-    urgent_signs = [
-        "dolor intenso o que empeora rápidamente",
-        "dificultad para respirar",
-        "fiebre alta o mal estado general",
-        "sangrado abundante o anormal",
-        "desmayo, confusión o debilidad marcada",
-    ]
+    from src.safety.red_flags import RedFlag
 
-    if specialty_hint == "ginecologia":
-        urgent_signs = [
-            "dolor pélvico intenso o abdomen muy doloroso",
-            "fiebre alta o escalofríos",
-            "sangrado vaginal abundante o embarazo posible con dolor",
-            "flujo muy maloliente con empeoramiento rápido",
-            "vómitos, mareo intenso o sensación de desmayo",
-        ]
-    elif specialty_hint == "cardiologia":
-        urgent_signs = [
-            "dolor torácico opresivo o que se irradia",
-            "falta de aire importante",
-            "desmayo o casi desmayo",
-            "sudor frío o palidez intensa",
-            "palpitaciones con mareo severo",
-        ]
-    elif specialty_hint == "neurologia":
-        urgent_signs = [
-            "debilidad en un lado del cuerpo",
-            "dificultad para hablar o entender",
-            "convulsiones",
-            "dolor de cabeza súbito muy intenso",
-            "pérdida de conciencia o confusión aguda",
-        ]
-
-    symptoms_text = (
-        ", ".join(main_symptoms) if main_symptoms else "síntomas potencialmente urgentes"
-    )
-    guidance = "\n".join(f"- {sign}" for sign in urgent_signs)
+    flags = [RedFlag(category=c, rule="safety_gate") for c in categories]
     message = Message(
         role="assistant",
-        content=(
-            "He detectado una situación que requiere valoración médica urgente.\n\n"
-            f"Motivo principal identificado: {symptoms_text}.\n\n"
-            "Qué hacer ahora:\n"
-            "1. No continúes dependiendo solo de este chat para decidir.\n"
-            "2. Busca atención médica presencial hoy mismo.\n"
-            "3. Si estás sola, intenta avisar a una persona de confianza.\n\n"
-            "Acude a urgencias o llama a emergencias si presentas cualquiera de estos signos:\n"
-            f"{guidance}\n\n"
-            "Si puedes desplazarte de forma segura, lleva una lista de tus síntomas, alergias, medicación y el tiempo de evolución."
-        ),
+        content=build_emergency_message(flags),
         session_id=session_id,
         specialist_type="emergencias",
         metadata={
-            "triage_data": triage_data,
-            "recommended_specialty": specialty_hint,
             "emergency_routing": True,
+            "deterministic": bool(categories),
+            "red_flags": categories,
+            "emergency_number": "112",
         },
     )
 
     logger.warning("⚠️ [Emergency] Caso urgente derivado a respuesta de emergencia")
     return {
         "messages": [message],
+        "triage_data": {**triage_data, "urgency": "urgente", "red_flags": categories},
         "needs_parallel_evaluation": False,
         "selected_specialist": None,
         "active_specialist": None,
-        "metadata": {"emergency_routing": True},
+        "metadata": {**gate_meta, "emergency_routing": True},
     }
 
 
@@ -266,7 +258,7 @@ async def consensus_node(state: MedicalGraphState) -> dict:
             content=(
                 f"Basándome en tu consulta, recomiendo que hables con "
                 f"**{selected.replace('_', ' ').title()}**.\n\n"
-                f"{reasoning}\n\n"
+                f"{apply_output_guard(str(reasoning)).text}\n\n"
                 f"Confianza: {confidence * 100:.0f}%"
             ),
             session_id=session_id,

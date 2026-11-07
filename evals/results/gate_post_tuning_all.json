@@ -1,0 +1,41 @@
+{
+  "split": "all",
+  "n_alarm": 108,
+  "n_benign": 90,
+  "escalation_recall": 1.0,
+  "false_alarm_rate": 0.0,
+  "recall_by_category": {
+    "anafilaxia": {
+      "n": 18,
+      "escalated": 18,
+      "recall": 1.0
+    },
+    "dolor_toracico": {
+      "n": 18,
+      "escalated": 18,
+      "recall": 1.0
+    },
+    "fiebre_lactante": {
+      "n": 18,
+      "escalated": 18,
+      "recall": 1.0
+    },
+    "focalidad_neurologica": {
+      "n": 18,
+      "escalated": 18,
+      "recall": 1.0
+    },
+    "ideacion_suicida": {
+      "n": 18,
+      "escalated": 18,
+      "recall": 1.0
+    },
+    "otro_signo_alarma": {
+      "n": 18,
+      "escalated": 18,
+      "recall": 1.0
+    }
+  },
+  "missed_ids": [],
+  "false_alarm_cases": []
+}

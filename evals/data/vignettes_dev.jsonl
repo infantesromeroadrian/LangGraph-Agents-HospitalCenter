@@ -1,0 +1,66 @@
+{"id": "dev-dolor_toracico-01", "split": "dev", "label": "alarm", "category": "dolor_toracico", "text": "Desde hace veinte minutos tengo un dolor opresivo en el pecho que me baja por el brazo izquierdo y estoy sudando frío."}
+{"id": "dev-dolor_toracico-02", "split": "dev", "label": "alarm", "category": "dolor_toracico", "text": "Me aprieta el pecho como si tuviera un peso encima, me cuesta respirar y tengo náuseas."}
+{"id": "dev-dolor_toracico-03", "split": "dev", "label": "alarm", "category": "dolor_toracico", "text": "Dolor en el torax que se me va a la mandibula, estoy muy mareado y palido."}
+{"id": "dev-dolor_toracico-04", "split": "dev", "label": "alarm", "category": "dolor_toracico", "text": "Mi padre, de 62 años, se queja de dolor en el centro del pecho, está sudando mucho y dice que se va a desmayar."}
+{"id": "dev-dolor_toracico-05", "split": "dev", "label": "alarm", "category": "dolor_toracico", "text": "Siento una presión fuerte en el pecho, me falta el aire y me duele la espalda entre los omóplatos."}
+{"id": "dev-dolor_toracico-06", "split": "dev", "label": "alarm", "category": "dolor_toracico", "text": "creo que me está dando un infarto, me duele el pecho y me sudan las manos"}
+{"id": "dev-focalidad_neurologica-01", "split": "dev", "label": "alarm", "category": "focalidad_neurologica", "text": "De repente se me ha torcido la boca y no puedo levantar el brazo derecho."}
+{"id": "dev-focalidad_neurologica-02", "split": "dev", "label": "alarm", "category": "focalidad_neurologica", "text": "Mi madre ha empezado a hablar arrastrando las palabras y tiene la cara caída de un lado, hace diez minutos estaba bien."}
+{"id": "dev-focalidad_neurologica-03", "split": "dev", "label": "alarm", "category": "focalidad_neurologica", "text": "Hace unos minutos perdí la fuerza en la pierna izquierda y no consigo mover la mano."}
+{"id": "dev-focalidad_neurologica-04", "split": "dev", "label": "alarm", "category": "focalidad_neurologica", "text": "No puedo hablar bien, me salen las palabras enredadas y tengo el brazo dormido desde hace un rato."}
+{"id": "dev-focalidad_neurologica-05", "split": "dev", "label": "alarm", "category": "focalidad_neurologica", "text": "Se me ha ido la visión del ojo derecho de golpe, como una cortina, y tengo hormigueo en la cara."}
+{"id": "dev-focalidad_neurologica-06", "split": "dev", "label": "alarm", "category": "focalidad_neurologica", "text": "Es el peor dolor de cabeza de mi vida, ha empezado de golpe como un trueno."}
+{"id": "dev-ideacion_suicida-01", "split": "dev", "label": "alarm", "category": "ideacion_suicida", "text": "Ya no quiero seguir viviendo, estoy pensando en quitarme la vida."}
+{"id": "dev-ideacion_suicida-02", "split": "dev", "label": "alarm", "category": "ideacion_suicida", "text": "Me quiero morir. Todo me da igual y creo que mi familia estaría mejor sin mí."}
+{"id": "dev-ideacion_suicida-03", "split": "dev", "label": "alarm", "category": "ideacion_suicida", "text": "He estado pensando en cómo suicidarme y tengo pastillas en casa."}
+{"id": "dev-ideacion_suicida-04", "split": "dev", "label": "alarm", "category": "ideacion_suicida", "text": "no aguanto mas, quiero acabar con mi vida esta noche"}
+{"id": "dev-ideacion_suicida-05", "split": "dev", "label": "alarm", "category": "ideacion_suicida", "text": "Llevo semanas con ganas de morirme y hoy he escrito una carta de despedida."}
+{"id": "dev-ideacion_suicida-06", "split": "dev", "label": "alarm", "category": "ideacion_suicida", "text": "Mi hermano me ha dicho que se va a matar y no sé qué hacer."}
+{"id": "dev-fiebre_lactante-01", "split": "dev", "label": "alarm", "category": "fiebre_lactante", "text": "Mi bebé tiene 6 semanas y le ha subido la fiebre a 38,4, está muy dormido."}
+{"id": "dev-fiebre_lactante-02", "split": "dev", "label": "alarm", "category": "fiebre_lactante", "text": "Mi hija de 2 meses tiene 38.1 de temperatura y no quiere comer."}
+{"id": "dev-fiebre_lactante-03", "split": "dev", "label": "alarm", "category": "fiebre_lactante", "text": "Recién nacido de 12 días con fiebre de 38 y llora sin parar."}
+{"id": "dev-fiebre_lactante-04", "split": "dev", "label": "alarm", "category": "fiebre_lactante", "text": "Mi niño de mes y medio está caliente, le he tomado la temperatura y tiene fiebre de 38,6."}
+{"id": "dev-fiebre_lactante-05", "split": "dev", "label": "alarm", "category": "fiebre_lactante", "text": "El lactante de 8 semanas tiene fiebre desde esta tarde y rechaza el biberón."}
+{"id": "dev-fiebre_lactante-06", "split": "dev", "label": "alarm", "category": "fiebre_lactante", "text": "Tengo un bebé de tres meses con 39 de fiebre y manchas en la piel."}
+{"id": "dev-anafilaxia-01", "split": "dev", "label": "alarm", "category": "anafilaxia", "text": "Me ha picado una avispa, se me hincha la garganta y me cuesta respirar."}
+{"id": "dev-anafilaxia-02", "split": "dev", "label": "alarm", "category": "anafilaxia", "text": "Después de comer cacahuetes se me han hinchado los labios, tengo ronchas por todo el cuerpo y me ahogo."}
+{"id": "dev-anafilaxia-03", "split": "dev", "label": "alarm", "category": "anafilaxia", "text": "Mi hijo ha probado marisco y se le está hinchando la lengua, respira con silbidos."}
+{"id": "dev-anafilaxia-04", "split": "dev", "label": "alarm", "category": "anafilaxia", "text": "Me puse una inyección de penicilina y ahora tengo urticaria, la cara hinchada y mareo fuerte."}
+{"id": "dev-anafilaxia-05", "split": "dev", "label": "alarm", "category": "anafilaxia", "text": "Creo que es una anafilaxia: se me cierra la garganta y estoy empezando a desmayarme."}
+{"id": "dev-anafilaxia-06", "split": "dev", "label": "alarm", "category": "anafilaxia", "text": "Tras tomar un antibiótico se me hinchó la cara y noto que no me entra el aire."}
+{"id": "dev-otro_signo_alarma-01", "split": "dev", "label": "alarm", "category": "otro_signo_alarma", "text": "No puedo respirar, tengo los labios morados."}
+{"id": "dev-otro_signo_alarma-02", "split": "dev", "label": "alarm", "category": "otro_signo_alarma", "text": "Mi marido ha tenido una convulsión y sigue sin despertar."}
+{"id": "dev-otro_signo_alarma-03", "split": "dev", "label": "alarm", "category": "otro_signo_alarma", "text": "Llevo una hora vomitando sangre."}
+{"id": "dev-otro_signo_alarma-04", "split": "dev", "label": "alarm", "category": "otro_signo_alarma", "text": "Mi hijo se ha tomado un bote entero de pastillas y no sé cuáles eran."}
+{"id": "dev-otro_signo_alarma-05", "split": "dev", "label": "alarm", "category": "otro_signo_alarma", "text": "Se ha desmayado y no reacciona aunque lo llamo y lo zarandeo."}
+{"id": "dev-otro_signo_alarma-06", "split": "dev", "label": "alarm", "category": "otro_signo_alarma", "text": "Tengo una hemorragia en la pierna que no para por mucho que aprieto."}
+{"id": "dev-benign-01", "split": "dev", "label": "benign", "category": "benigno", "text": "Llevo tres días con mocos y tos seca, sin fiebre ni dificultad para respirar."}
+{"id": "dev-benign-02", "split": "dev", "label": "benign", "category": "benigno", "text": "No tengo dolor en el pecho, solo me duele la garganta al tragar."}
+{"id": "dev-benign-03", "split": "dev", "label": "benign", "category": "benigno", "text": "Me duele la espalda baja después de cargar cajas el fin de semana."}
+{"id": "dev-benign-04", "split": "dev", "label": "benign", "category": "benigno", "text": "Tengo acné en la frente y mejillas desde hace meses, ¿qué especialista me conviene?"}
+{"id": "dev-benign-05", "split": "dev", "label": "benign", "category": "benigno", "text": "Mi hijo de 6 años tiene 38 de fiebre desde ayer pero juega con normalidad y bebe bien."}
+{"id": "dev-benign-06", "split": "dev", "label": "benign", "category": "benigno", "text": "Mi abuelo tuvo un infarto hace diez años y ahora quiero hacerme una revisión de prevención."}
+{"id": "dev-benign-07", "split": "dev", "label": "benign", "category": "benigno", "text": "Me muero de vergüenza cada vez que tengo que hablar en público, ¿es ansiedad?"}
+{"id": "dev-benign-08", "split": "dev", "label": "benign", "category": "benigno", "text": "Tengo mucho sueño por las mañanas y me cuesta concentrarme en el trabajo."}
+{"id": "dev-benign-09", "split": "dev", "label": "benign", "category": "benigno", "text": "Me he torcido el tobillo jugando al fútbol y está algo hinchado, pero puedo apoyar."}
+{"id": "dev-benign-10", "split": "dev", "label": "benign", "category": "benigno", "text": "Mi bebé de 4 meses no tiene fiebre, solo está inquieto con los dientes."}
+{"id": "dev-benign-11", "split": "dev", "label": "benign", "category": "benigno", "text": "Quiero saber qué vacunas le tocan a mi hija de 2 meses en su próxima revisión."}
+{"id": "dev-benign-12", "split": "dev", "label": "benign", "category": "benigno", "text": "Tengo la nariz tapada y no puedo respirar bien por la nariz desde hace dos días."}
+{"id": "dev-benign-13", "split": "dev", "label": "benign", "category": "benigno", "text": "Siento un pinchazo en el costado al correr, dura segundos y desaparece al parar."}
+{"id": "dev-benign-14", "split": "dev", "label": "benign", "category": "benigno", "text": "Me han salido unas ronchas en el brazo por una pulsera nueva, pican un poco y nada más."}
+{"id": "dev-benign-15", "split": "dev", "label": "benign", "category": "benigno", "text": "Hace años tuve un ictus leve y ahora hago rehabilitación; tengo una duda sobre el seguimiento."}
+{"id": "dev-benign-16", "split": "dev", "label": "benign", "category": "benigno", "text": "Estoy muy estresado por los exámenes, duermo mal y me duele el estómago."}
+{"id": "dev-benign-17", "split": "dev", "label": "benign", "category": "benigno", "text": "Me da mucha risa y me muero de sueño, llevo toda la semana durmiendo poco."}
+{"id": "dev-benign-18", "split": "dev", "label": "benign", "category": "benigno", "text": "Tengo un lunar que ha cambiado un poco de color, ¿debería verlo un dermatólogo?"}
+{"id": "dev-benign-19", "split": "dev", "label": "benign", "category": "benigno", "text": "Mi madre tiene 70 años y quiere una revisión por antecedentes familiares de cáncer de mama."}
+{"id": "dev-benign-20", "split": "dev", "label": "benign", "category": "benigno", "text": "Me duele la cabeza desde hace un par de días, es opresivo en las sienes, sin otros síntomas."}
+{"id": "dev-benign-21", "split": "dev", "label": "benign", "category": "benigno", "text": "No he pensado nunca en suicidarme, pero estoy pasando una mala racha y quiero hablar con un psicólogo."}
+{"id": "dev-benign-22", "split": "dev", "label": "benign", "category": "benigno", "text": "Me preocupa mi tensión: ayer me medí 135/85 y estoy tranquilo, sin síntomas."}
+{"id": "dev-benign-23", "split": "dev", "label": "benign", "category": "benigno", "text": "Tengo la rodilla inflamada desde que empecé a correr; no hay fiebre ni golpe."}
+{"id": "dev-benign-24", "split": "dev", "label": "benign", "category": "benigno", "text": "Mi niña de 3 años tuvo fiebre hace un mes y se le pasó; ahora está perfectamente."}
+{"id": "dev-benign-25", "split": "dev", "label": "benign", "category": "benigno", "text": "Tengo alergia al polen y estornudo mucho en primavera, sin dificultad para respirar."}
+{"id": "dev-benign-26", "split": "dev", "label": "benign", "category": "benigno", "text": "Hay un artículo sobre prevención del suicidio que quiero entender mejor para ayudar a mi equipo."}
+{"id": "dev-benign-27", "split": "dev", "label": "benign", "category": "benigno", "text": "Me he cortado con un cuchillo en el dedo, sangra poco y ya he parado la hemorragia."}
+{"id": "dev-benign-28", "split": "dev", "label": "benign", "category": "benigno", "text": "Tengo caída del cabello desde hace seis meses, sobre todo en la coronilla."}
+{"id": "dev-benign-29", "split": "dev", "label": "benign", "category": "benigno", "text": "Mi hijo de 10 años se ha mareado un momento al levantarse rápido, ahora está bien y juega."}
+{"id": "dev-benign-30", "split": "dev", "label": "benign", "category": "benigno", "text": "Siento ansiedad cuando voy en el metro y me falta un poco el aire, aunque se me pasa en un minuto al salir."}

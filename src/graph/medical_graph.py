@@ -13,6 +13,7 @@ from src.config.settings import settings
 from src.graph.nodes import (
     consensus_node,
     emergency_response_node,
+    safety_gate_node,
     specialist_chat_node,
     specialist_evaluation_node,
     triage_node,
@@ -20,6 +21,14 @@ from src.graph.nodes import (
 from src.graph.state import MedicalGraphState
 
 logger = logging.getLogger(__name__)
+
+
+def route_after_safety_gate(state: MedicalGraphState) -> str:
+    """Tras la puerta determinista: urgencias si hay signos de alarma; si no, triaje."""
+    if (state.get("metadata", {}) or {}).get("red_flags"):
+        logger.warning("⚠️ [Router] Puerta de seguridad -> emergency_response")
+        return "emergency_response"
+    return "triage"
 
 
 def route_after_triage(state: MedicalGraphState):
@@ -76,6 +85,7 @@ async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
         workflow = StateGraph(MedicalGraphState)
 
         # Agregar nodos
+        workflow.add_node("safety_gate", safety_gate_node)
         workflow.add_node("triage", triage_node)
         workflow.add_node("emergency_response", emergency_response_node)
         workflow.add_node("specialist_evaluation", specialist_evaluation_node)  # type: ignore[arg-type]
@@ -83,7 +93,13 @@ async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
         workflow.add_node("specialist_chat", specialist_chat_node)
 
         # Definir punto de entrada
-        workflow.set_entry_point("triage")
+        # La puerta de seguridad determinista va SIEMPRE antes que cualquier LLM
+        workflow.set_entry_point("safety_gate")
+        workflow.add_conditional_edges(
+            "safety_gate",
+            route_after_safety_gate,
+            {"emergency_response": "emergency_response", "triage": "triage"},
+        )
 
         # Router después de triaje: decide fan-out o chat directo
         # Retorna Send objects (fan-out) o string "specialist_chat"
