@@ -15,7 +15,9 @@ PATIENT_RECORD_END_MARKER = "<|patient_record_end|>"
 
 PROMPT_INJECTION_PATTERNS: dict[str, re.Pattern[str]] = {
     "role_tags": re.compile(r"(?i)\[(?:/?system|/?inst)\]|<<\/?sys>>"),
-    "directive_headers": re.compile(r"(?im)^(?:system|assistant|developer|human|sistema|asistente)\s*:\s*"),
+    "directive_headers": re.compile(
+        r"(?im)^(?:system|assistant|developer|human|sistema|asistente)\s*:\s*"
+    ),
     "override_language_en": re.compile(
         r"(?i)\b(?:ignore (?:all )?previous instructions?|ignore instructions?|"
         r"forget (?:all )?(?:previous|above)|new instructions?|you are now|"
@@ -100,6 +102,16 @@ def validate_message_role(role: str) -> bool:
     return role in valid_roles
 
 
+INTERNAL_MARKER_RE = re.compile(
+    r"<\|\s*(?:user_input|patient_record)_(?:begin|end)\s*\|>", re.IGNORECASE
+)
+
+
+def neutralize_internal_markers(text: str) -> str:
+    """Elimina delimitadores internos del texto no confiable (evita cerrar el bloque de datos)."""
+    return INTERNAL_MARKER_RE.sub("[delimiter removed]", text)
+
+
 def sanitize_patient_input(text: str, max_length: int = 5000) -> str:
     """
     Sanitiza input del paciente.
@@ -122,6 +134,9 @@ def sanitize_patient_input(text: str, max_length: int = 5000) -> str:
 
     # Remover múltiples espacios en blanco
     text = re.sub(r"\s+", " ", text)
+
+    # El paciente no puede falsificar los delimitadores internos de datos no confiables
+    text = neutralize_internal_markers(text)
 
     return text.strip()
 
@@ -158,11 +173,13 @@ def sanitize_llm_input(text: str, session_id: str | None = None, max_length: int
 
 def format_user_input_for_llm(text: str) -> str:
     """Envuelve el texto del paciente como dato no confiable para el LLM."""
+    text = neutralize_internal_markers(text)
     return f"{USER_INPUT_BEGIN_MARKER}\n{text}\n{USER_INPUT_END_MARKER}"
 
 
 def format_patient_record_for_llm(text: str) -> str:
     """Envuelve el historial clinico como dato no confiable para el LLM."""
+    text = neutralize_internal_markers(text)
     return f"{PATIENT_RECORD_BEGIN_MARKER}\n{text}\n{PATIENT_RECORD_END_MARKER}"
 
 

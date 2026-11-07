@@ -84,6 +84,7 @@ $RECYCLE.BIN/
 
 # Project specific directories
 data/
+!evals/data/
 model/
 notebook/
 assets/

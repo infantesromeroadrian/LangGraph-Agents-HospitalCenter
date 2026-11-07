@@ -7,4 +7,4 @@ TODO: Implementar en Fase 2:
 - Request logging middleware
 """
 
-__all__ = []
+__all__: list[str] = []

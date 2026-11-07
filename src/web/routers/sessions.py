@@ -165,6 +165,27 @@ async def get_session(
         ) from e
 
 
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_session(
+    session_id: UUID,
+    response: Response,
+    _: Any = Depends(enforce_write_rate_limit),
+    session_auth: dict = Depends(require_session_token),
+):
+    """Borra de forma definitiva la sesión, sus mensajes y el estado del grafo (RGPD art. 17)."""
+    ensure_session_access(session_auth, session_id)
+    try:
+        await db_service.delete_session_data(session_id)
+    except Exception as e:
+        logger.error("❌ [API] Error borrando sesión (%s)", type(e).__name__)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al borrar la sesión.",
+        ) from e
+    response.delete_cookie(key=SESSION_AUTH_COOKIE_NAME, path="/")
+    return None
+
+
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response):
     """

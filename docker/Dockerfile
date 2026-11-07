@@ -13,13 +13,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:0.6 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv venv /opt/venv
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv \
+    UV_PYTHON_DOWNLOADS=never
 ENV PATH="/opt/venv/bin:$PATH"
-RUN uv sync --frozen --no-dev --python /opt/venv/bin/python
+# Solo dependencias: el proyecto se ejecuta desde src/ (no se instala como paquete)
+RUN uv sync --frozen --no-dev --no-install-project
 
 # ============================================================================
 # Stage 2: Runtime (slim)

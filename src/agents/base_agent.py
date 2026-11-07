@@ -10,6 +10,7 @@ from uuid import UUID
 
 from src.models.evaluation import SpecialistEvaluation
 from src.models.message import Message
+from src.safety import apply_output_guard
 from src.services.llm_service import LLMService
 from src.utils.validators import format_user_input_for_llm, sanitize_llm_input
 
@@ -28,6 +29,7 @@ class BaseMedicalAgent(ABC):
             llm_service: Servicio LLM (usa global si no se provee)
         """
         self.specialty = specialty
+        self.last_guard_violations: list[str] = []
         from src.config.prompts import get_specialty_protocol
 
         # Fix: import the global llm_service properly
@@ -168,7 +170,13 @@ class BaseMedicalAgent(ABC):
 
             # Añadir historial de conversación
             for msg in history_for_turn[-10:]:  # Últimos 10 mensajes
-                messages.append(msg.to_langchain_format())
+                formatted = msg.to_langchain_format()
+                if msg.role == "user" and isinstance(formatted.get("content"), str):
+                    # Memoria persistente: el historial del paciente se reenvía como dato no confiable
+                    formatted["content"] = format_user_input_for_llm(
+                        sanitize_llm_input(formatted["content"])
+                    )
+                messages.append(formatted)
 
             # Añadir mensaje actual
             messages.append(
@@ -179,11 +187,21 @@ class BaseMedicalAgent(ABC):
             )
 
             # Generar respuesta
-            response = await self.llm.complete(messages)
+            raw_response = await self.llm.complete(messages)
+
+            # Barrera determinista: ningún especialista receta fármacos ni dosis
+            guarded = apply_output_guard(raw_response)
+            self.last_guard_violations = guarded.violations
+            if guarded.modified:
+                logger.warning(
+                    "⚠️ %s: salida modificada por la barrera de prescripción (%s)",
+                    self.specialty,
+                    sorted(set(guarded.violations)),
+                )
 
             logger.info(f"ℹ️ {self.specialty}: Respuesta generada")
 
-            return response
+            return guarded.text
 
         except Exception as e:
             logger.error(f"❌ {self.specialty}: Error en chat: {e!s}")

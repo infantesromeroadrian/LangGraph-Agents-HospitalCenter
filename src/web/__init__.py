@@ -1,3 +1,3 @@
 """Interfaz web Flask del sistema médico."""
 
-__all__ = []
+__all__: list[str] = []

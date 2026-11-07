@@ -1,0 +1,65 @@
+{
+  "split": "test",
+  "note": "Primera y única ejecución previa a la corrección de reglas con estos casos.",
+  "n_alarm": 36,
+  "n_benign": 30,
+  "escalation_recall": 0.5833,
+  "false_alarm_rate": 0.0333,
+  "recall_by_category": {
+    "anafilaxia": {
+      "n": 6,
+      "escalated": 4,
+      "recall": 0.6667
+    },
+    "dolor_toracico": {
+      "n": 6,
+      "escalated": 2,
+      "recall": 0.3333
+    },
+    "fiebre_lactante": {
+      "n": 6,
+      "escalated": 5,
+      "recall": 0.8333
+    },
+    "focalidad_neurologica": {
+      "n": 6,
+      "escalated": 4,
+      "recall": 0.6667
+    },
+    "ideacion_suicida": {
+      "n": 6,
+      "escalated": 1,
+      "recall": 0.1667
+    },
+    "otro_signo_alarma": {
+      "n": 6,
+      "escalated": 5,
+      "recall": 0.8333
+    }
+  },
+  "missed_ids": [
+    "test-dolor_toracico-01",
+    "test-dolor_toracico-03",
+    "test-dolor_toracico-04",
+    "test-dolor_toracico-06",
+    "test-focalidad_neurologica-02",
+    "test-focalidad_neurologica-05",
+    "test-ideacion_suicida-01",
+    "test-ideacion_suicida-03",
+    "test-ideacion_suicida-04",
+    "test-ideacion_suicida-05",
+    "test-ideacion_suicida-06",
+    "test-fiebre_lactante-03",
+    "test-anafilaxia-01",
+    "test-anafilaxia-04",
+    "test-otro_signo_alarma-01"
+  ],
+  "false_alarm_cases": [
+    {
+      "id": "test-benign-20",
+      "flags": [
+        "focalidad_neurologica"
+      ]
+    }
+  ]
+}

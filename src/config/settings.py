@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     DB_ECHO: bool = Field(default=False, description="Log SQL queries")
 
     # Application Configuration (FastAPI)
-    APP_HOST: str = Field(default="0.0.0.0", description="Host para el servidor")
+    APP_HOST: str = Field(default="127.0.0.1", description="Host para el servidor")
     APP_PORT: int = Field(default=5000, gt=0, lt=65536, description="Puerto del servidor")
     APP_DEBUG: bool = Field(default=False, description="Modo debug (solo desarrollo)")
     APP_SECRET_KEY: str = Field(default="", description="Secreto principal de la aplicación")
@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     SESSION_TOKEN_TTL_HOURS: int = Field(default=4, ge=1, le=168)
     AUTH_COOKIE_SECURE: bool = Field(default=False)
     AUTH_COOKIE_SAMESITE: Literal["lax", "strict", "none"] = Field(default="lax")
+
+    # Privacidad (datos de salud = categoría especial, RGPD art. 9)
+    DATA_RETENTION_DAYS: int = Field(
+        default=30, ge=1, le=3650, description="Días de conservación de sesiones y mensajes"
+    )
+    RETENTION_PURGE_INTERVAL_HOURS: int = Field(default=6, ge=1, le=168)
 
     # LangGraph Configuration
     RECURSION_LIMIT: int = Field(default=50, gt=0, description="Límite de recursión del grafo")

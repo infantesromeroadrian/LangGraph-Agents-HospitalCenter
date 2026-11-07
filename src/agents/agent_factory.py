@@ -24,7 +24,7 @@ class AgentFactory:
     """Factory para crear instancias de agentes médicos."""
 
     # Mapeo de especialidades a clases de agentes
-    AGENT_MAP = {
+    AGENT_MAP: dict[str, type[BaseMedicalAgent]] = {
         "medicina_general": GeneralMedicineAgent,
         "cardiologia": CardiologyAgent,
         "neurologia": NeurologyAgent,
@@ -57,7 +57,7 @@ class AgentFactory:
             return None
 
         try:
-            agent = agent_class(llm_service=llm_service)
+            agent = agent_class(llm_service=llm_service)  # type: ignore[call-arg]
             logger.info(f"ℹ️ Agente creado: {specialty}")
             return agent
         except Exception as e:
