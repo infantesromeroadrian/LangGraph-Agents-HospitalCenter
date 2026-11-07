@@ -252,8 +252,7 @@ class TestNormalizeImageAttachments:
     def test_too_many_attachments_raises(self):
         """Exceeding MAX_IMAGE_ATTACHMENTS must raise ValueError."""
         too_many = [
-            _valid_jpeg_attachment(f"img{i}.jpg")
-            for i in range(settings.MAX_IMAGE_ATTACHMENTS + 1)
+            _valid_jpeg_attachment(f"img{i}.jpg") for i in range(settings.MAX_IMAGE_ATTACHMENTS + 1)
         ]
         with pytest.raises(ValueError, match=str(settings.MAX_IMAGE_ATTACHMENTS)):
             _normalize_image_attachments(too_many)

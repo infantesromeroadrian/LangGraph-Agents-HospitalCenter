@@ -6,6 +6,7 @@ from src.agents.agent_factory import AgentFactory
 from src.agents.consensus_agent import ConsensusAgent
 from src.agents.triage_agent import TriageAgent
 from src.graph.state import MedicalGraphState
+from src.models.evaluation import SpecialistEvaluation
 from src.models.message import Message
 
 logger = logging.getLogger(__name__)
@@ -171,7 +172,6 @@ async def emergency_response_node(state: MedicalGraphState) -> dict:
     }
 
 
-
 async def specialist_evaluation_node(data: dict) -> dict:
     """
     Nodo de evaluación de un especialista individual.
@@ -215,6 +215,10 @@ async def specialist_evaluation_node(data: dict) -> dict:
             session_id=session_id,
             patient_context=patient_context,
         )
+
+        if not isinstance(evaluation, SpecialistEvaluation):
+            logger.error(f"❌ [{specialty}] Evaluación con formato inesperado")
+            return {}
 
         logger.info(
             f"ℹ️ [{specialty}] Evaluación completada - Relevancia: {evaluation.relevance_score:.1f}"

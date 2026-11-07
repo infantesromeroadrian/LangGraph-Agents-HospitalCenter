@@ -402,7 +402,7 @@ async def process_user_message(
 
         logger.info("ℹ️ [WebSocket] Iniciando stream del grafo médico")
 
-        async for event in medical_graph_manager.stream(cast(MedicalGraphState, state), config):
+        async for event in medical_graph_manager.stream(state, config):
             node_name = next(iter(event.keys()))
             node_output = event[node_name]
 

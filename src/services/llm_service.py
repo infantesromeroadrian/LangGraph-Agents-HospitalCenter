@@ -3,7 +3,7 @@
 import json
 import logging
 from collections.abc import AsyncIterator
-from typing import Optional
+from typing import Any, Optional
 
 from openai import AsyncOpenAI, OpenAIError
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -56,7 +56,7 @@ class LLMService:
         try:
             logger.debug(f"🐞 Llamando a LLM con {len(messages)} mensajes")
 
-            params = {
+            params: dict[str, Any] = {
                 "model": self.model,
                 "messages": messages,
                 "temperature": temperature or self.temperature,
@@ -128,7 +128,7 @@ class LLMService:
         try:
             logger.debug(f"🐞 Iniciando streaming con {len(messages)} mensajes")
 
-            params = {
+            params: dict[str, Any] = {
                 "model": self.model,
                 "messages": messages,
                 "temperature": temperature or self.temperature,

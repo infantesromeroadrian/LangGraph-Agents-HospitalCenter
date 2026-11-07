@@ -15,6 +15,7 @@ from src.models.session import Session
 # Helpers — build LLMService with a fully-mocked AsyncOpenAI client
 # ---------------------------------------------------------------------------
 
+
 def _make_llm_service(base_url: str = "https://api.openai.com/v1") -> "LLMService":  # noqa: F821
     """Return an LLMService instance whose AsyncOpenAI client is a MagicMock."""
     from src.services.llm_service import LLMService
@@ -50,6 +51,7 @@ def _make_db_service() -> "DatabaseService":  # noqa: F821
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def llm_service():
@@ -93,6 +95,7 @@ def sample_message(sample_session):
 # LLMService Tests
 # ===========================================================================
 
+
 class TestLLMServiceComplete:
     """Tests for LLMService.complete()."""
 
@@ -110,7 +113,9 @@ class TestLLMServiceComplete:
         llm_service.client.chat.completions.create.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_complete_none_content_returns_empty_string(self, llm_service, sample_messages_list):
+    async def test_complete_none_content_returns_empty_string(
+        self, llm_service, sample_messages_list
+    ):
         """complete() must return '' when API delivers content=None, not crash."""
         mock_response = MagicMock()
         mock_response.choices[0].message.content = None
@@ -181,9 +186,7 @@ class TestLLMServiceComplete:
         mock_response.choices[0].message.content = '{"key": "val"}'
         llm_service.client.chat.completions.create = AsyncMock(return_value=mock_response)
 
-        await llm_service.complete(
-            sample_messages_list, response_format={"type": "json_object"}
-        )
+        await llm_service.complete(sample_messages_list, response_format={"type": "json_object"})
 
         call_kwargs = llm_service.client.chat.completions.create.call_args.kwargs
         assert call_kwargs.get("response_format") == {"type": "json_object"}
@@ -273,6 +276,7 @@ class TestLLMServiceStreamComplete:
     @pytest.mark.asyncio
     async def test_stream_complete_skips_none_chunks(self, llm_service, sample_messages_list):
         """stream_complete() must not yield chunks where delta.content is None."""
+
         def _chunk(text):
             c = MagicMock()
             c.choices[0].delta.content = text
@@ -280,7 +284,7 @@ class TestLLMServiceStreamComplete:
 
         async def _async_iter():
             yield _chunk("first")
-            yield _chunk(None)   # should be skipped
+            yield _chunk(None)  # should be skipped
             yield _chunk("last")
 
         llm_service.client.chat.completions.create = AsyncMock(return_value=_async_iter())
@@ -296,6 +300,7 @@ class TestLLMServiceStreamComplete:
         self, groq_llm_service, sample_messages_list
     ):
         """Groq streaming must use max_tokens, not max_completion_tokens."""
+
         async def _empty():
             return
             yield  # make it an async generator
@@ -366,6 +371,7 @@ class TestLLMServiceHelpers:
 # DatabaseService Tests
 # ===========================================================================
 
+
 class TestDatabaseServiceEnsurePool:
     """Tests for DatabaseService._ensure_pool() lifecycle logic."""
 
@@ -375,7 +381,10 @@ class TestDatabaseServiceEnsurePool:
         assert db_service.pool is None
 
         mock_pool = MagicMock()
-        with patch("src.services.database_service.asyncpg.create_pool", new=AsyncMock(return_value=mock_pool)):
+        with patch(
+            "src.services.database_service.asyncpg.create_pool",
+            new=AsyncMock(return_value=mock_pool),
+        ):
             await db_service._ensure_pool()
 
         assert db_service.pool is mock_pool
@@ -388,7 +397,10 @@ class TestDatabaseServiceEnsurePool:
         db_service._worker_pid = 99999  # force PID mismatch
 
         new_pool = MagicMock()
-        with patch("src.services.database_service.asyncpg.create_pool", new=AsyncMock(return_value=new_pool)):
+        with patch(
+            "src.services.database_service.asyncpg.create_pool",
+            new=AsyncMock(return_value=new_pool),
+        ):
             await db_service._ensure_pool()
 
         old_pool.close.assert_called_once()
@@ -456,7 +468,10 @@ class TestDatabaseServiceGetConnection:
         new_pool.acquire = AsyncMock(return_value=fresh_conn)
         new_pool.release = AsyncMock()
 
-        with patch("src.services.database_service.asyncpg.create_pool", new=AsyncMock(return_value=new_pool)):
+        with patch(
+            "src.services.database_service.asyncpg.create_pool",
+            new=AsyncMock(return_value=new_pool),
+        ):
             async with db_service.get_connection() as conn:
                 assert conn is fresh_conn
 
@@ -507,9 +522,7 @@ class TestDatabaseServiceCreateSession:
         assert sample_session.session_id in args
 
     @pytest.mark.asyncio
-    async def test_create_session_serializes_patient_info_as_json(
-        self, db_service, sample_session
-    ):
+    async def test_create_session_serializes_patient_info_as_json(self, db_service, sample_session):
         """patient_info dict is JSON-serialised before being passed to execute()."""
         mock_conn = AsyncMock()
 

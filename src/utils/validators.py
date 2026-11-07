@@ -15,7 +15,9 @@ PATIENT_RECORD_END_MARKER = "<|patient_record_end|>"
 
 PROMPT_INJECTION_PATTERNS: dict[str, re.Pattern[str]] = {
     "role_tags": re.compile(r"(?i)\[(?:/?system|/?inst)\]|<<\/?sys>>"),
-    "directive_headers": re.compile(r"(?im)^(?:system|assistant|developer|human|sistema|asistente)\s*:\s*"),
+    "directive_headers": re.compile(
+        r"(?im)^(?:system|assistant|developer|human|sistema|asistente)\s*:\s*"
+    ),
     "override_language_en": re.compile(
         r"(?i)\b(?:ignore (?:all )?previous instructions?|ignore instructions?|"
         r"forget (?:all )?(?:previous|above)|new instructions?|you are now|"

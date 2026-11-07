@@ -6,7 +6,7 @@ import hmac
 import json
 import logging
 import time
-from typing import Any, Literal
+from typing import Any, Final, Literal
 from uuid import UUID
 
 from fastapi import Cookie, Header, HTTPException, Response, WebSocket, status
@@ -19,8 +19,8 @@ PATIENT_AUTH_COOKIE_NAME = "medical_patient_token"
 SESSION_AUTH_COOKIE_NAME = "medical_session_token"
 ADMIN_API_KEY_HEADER = "X-Admin-Key"
 
-TOKEN_TYPE_PATIENT = "patient"
-TOKEN_TYPE_SESSION = "session"
+TOKEN_TYPE_PATIENT: Final = "patient"
+TOKEN_TYPE_SESSION: Final = "session"
 
 COOKIE_PATH = "/"
 UNAUTHORIZED_DETAIL = "Autenticacion requerida."

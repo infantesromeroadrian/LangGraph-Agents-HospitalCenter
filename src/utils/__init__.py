@@ -1,3 +1,3 @@
 """Utilidades y helpers del sistema."""
 
-__all__ = []
+__all__: list[str] = []

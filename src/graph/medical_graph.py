@@ -62,7 +62,6 @@ def route_after_triage(state: MedicalGraphState):
         return "specialist_chat"
 
 
-
 async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
     """
     Crea y configura el grafo de agentes médicos.
@@ -79,7 +78,7 @@ async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
         # Agregar nodos
         workflow.add_node("triage", triage_node)
         workflow.add_node("emergency_response", emergency_response_node)
-        workflow.add_node("specialist_evaluation", specialist_evaluation_node)
+        workflow.add_node("specialist_evaluation", specialist_evaluation_node)  # type: ignore[arg-type]
         workflow.add_node("consensus", consensus_node)
         workflow.add_node("specialist_chat", specialist_chat_node)
 
@@ -115,9 +114,9 @@ async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
         raise
 
 
-async def create_postgres_checkpointer() -> tuple[
-    AsyncPostgresSaver, AbstractAsyncContextManager[AsyncPostgresSaver]
-]:
+async def create_postgres_checkpointer() -> (
+    tuple[AsyncPostgresSaver, AbstractAsyncContextManager[AsyncPostgresSaver]]
+):
     """
     Crea el checkpointer PostgreSQL para persistencia durable.
 

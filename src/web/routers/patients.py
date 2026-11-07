@@ -296,8 +296,15 @@ async def update_patient(
 
         # Construir query de actualización solo con campos permitidos
         allowed_columns = {
-            "full_name", "age", "gender", "dni", "email", "phone",
-            "allergies", "medications", "medical_history",
+            "full_name",
+            "age",
+            "gender",
+            "dni",
+            "email",
+            "phone",
+            "allergies",
+            "medications",
+            "medical_history",
         }
         update_fields = []
         update_values = []
