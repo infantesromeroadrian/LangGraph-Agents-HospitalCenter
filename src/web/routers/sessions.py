@@ -3,7 +3,7 @@ Endpoints para gestión de sesiones de conversación médica.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
@@ -30,7 +30,7 @@ class CreateSessionRequest(BaseModel):
     """Request para crear una nueva sesión."""
 
     patient_info: dict = Field(default_factory=dict)
-    medical_record_number: Optional[str] = None
+    medical_record_number: str | None = None
 
 
 class SessionResponse(BaseModel):

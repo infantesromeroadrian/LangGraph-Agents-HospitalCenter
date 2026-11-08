@@ -3,7 +3,7 @@
 import json
 import logging
 from collections.abc import AsyncIterator
-from typing import Any, Optional
+from typing import Any
 
 from openai import AsyncOpenAI, OpenAIError
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -37,9 +37,9 @@ class LLMService:
     async def complete(
         self,
         messages: list[dict],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        response_format: Optional[dict] = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        response_format: dict | None = None,
     ) -> str:
         """
         Genera una respuesta del LLM.
@@ -86,9 +86,7 @@ class LLMService:
             logger.error(f"❌ Error inesperado en LLM: {e!s}")
             raise
 
-    async def complete_json(
-        self, messages: list[dict], temperature: Optional[float] = None
-    ) -> dict:
+    async def complete_json(self, messages: list[dict], temperature: float | None = None) -> dict:
         """
         Genera una respuesta en formato JSON.
 
@@ -113,7 +111,7 @@ class LLMService:
             raise ValueError(f"LLM no retornó JSON válido: {e!s}") from e
 
     async def stream_complete(
-        self, messages: list[dict], temperature: Optional[float] = None
+        self, messages: list[dict], temperature: float | None = None
     ) -> AsyncIterator[str]:
         """
         Genera respuesta con streaming.

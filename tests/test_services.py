@@ -599,7 +599,7 @@ class TestDatabaseServiceAddMessage:
 
         assert result is sample_message
         mock_conn.execute.assert_called_once()
-        sql, *args = mock_conn.execute.call_args.args
+        sql, *_args = mock_conn.execute.call_args.args
         assert "INSERT INTO messages" in sql
 
     @pytest.mark.asyncio

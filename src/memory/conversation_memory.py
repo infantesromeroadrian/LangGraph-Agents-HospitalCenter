@@ -1,7 +1,6 @@
 """Sistema de memoria conversacional."""
 
 import logging
-from typing import Optional
 from uuid import UUID
 
 from src.models.message import Message
@@ -19,7 +18,7 @@ class ConversationMemory:
     en PostgreSQL, complementando el checkpointer de LangGraph.
     """
 
-    def __init__(self, db: Optional[DatabaseService] = None):
+    def __init__(self, db: DatabaseService | None = None):
         """
         Inicializa el gestor de memoria.
 
@@ -29,9 +28,7 @@ class ConversationMemory:
         self.db = db or db_service
         logger.info("ℹ️ ConversationMemory inicializado")
 
-    async def create_session(
-        self, session_id: UUID, patient_info: Optional[dict] = None
-    ) -> Session:
+    async def create_session(self, session_id: UUID, patient_info: dict | None = None) -> Session:
         """
         Crea una nueva sesión.
 
@@ -54,7 +51,7 @@ class ConversationMemory:
             logger.error(f"❌ Error creando sesión: {e!s}")
             raise
 
-    async def get_session(self, session_id: UUID) -> Optional[Session]:
+    async def get_session(self, session_id: UUID) -> Session | None:
         """
         Obtiene una sesión por ID.
 
@@ -128,7 +125,7 @@ class ConversationMemory:
             logger.error(f"❌ Error guardando mensaje: {e!s}")
             return False
 
-    async def get_messages(self, session_id: UUID, limit: Optional[int] = None) -> list[Message]:
+    async def get_messages(self, session_id: UUID, limit: int | None = None) -> list[Message]:
         """
         Obtiene mensajes de una sesión.
 

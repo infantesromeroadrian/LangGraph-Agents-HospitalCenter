@@ -1,7 +1,6 @@
 """Factory para crear agentes médicos."""
 
 import logging
-from typing import Optional
 
 from src.agents.base_agent import BaseMedicalAgent
 from src.agents.specialists import (
@@ -38,8 +37,8 @@ class AgentFactory:
 
     @classmethod
     def create_agent(
-        cls, specialty: str, llm_service: Optional[LLMService] = None
-    ) -> Optional[BaseMedicalAgent]:
+        cls, specialty: str, llm_service: LLMService | None = None
+    ) -> BaseMedicalAgent | None:
         """
         Crea un agente médico específico.
 
@@ -66,7 +65,7 @@ class AgentFactory:
 
     @classmethod
     def create_all_specialists(
-        cls, llm_service: Optional[LLMService] = None
+        cls, llm_service: LLMService | None = None
     ) -> list[BaseMedicalAgent]:
         """
         Crea todos los agentes especialistas disponibles.

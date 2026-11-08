@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 
@@ -13,8 +13,8 @@ class Message:
     role: Literal["user", "assistant", "system"]
     content: str
     message_id: UUID = field(default_factory=uuid4)
-    session_id: Optional[UUID] = None
-    specialist_type: Optional[str] = None
+    session_id: UUID | None = None
+    specialist_type: str | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     metadata: dict = field(default_factory=dict)
 

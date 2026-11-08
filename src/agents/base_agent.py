@@ -5,7 +5,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from dataclasses import replace
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from src.models.evaluation import SpecialistEvaluation
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class BaseMedicalAgent(ABC):
     """Clase base abstracta para todos los agentes médicos especializados."""
 
-    def __init__(self, specialty: str, llm_service: Optional[LLMService] = None):
+    def __init__(self, specialty: str, llm_service: LLMService | None = None):
         """
         Inicializa un agente médico.
 
@@ -54,9 +54,9 @@ class BaseMedicalAgent(ABC):
     async def evaluate(
         self,
         message,
-        triage_analysis: Optional[dict] = None,
-        session_id: Optional[UUID] = None,
-        patient_context: Optional[str] = None,
+        triage_analysis: dict | None = None,
+        session_id: UUID | None = None,
+        patient_context: str | None = None,
     ) -> SpecialistEvaluation | dict[str, Any]:
         """
         Evalúa si un caso pertenece a esta especialidad.
@@ -129,7 +129,7 @@ class BaseMedicalAgent(ABC):
         message: str | Message,
         session_id,
         history: list[Message],
-        patient_context: Optional[str] = None,
+        patient_context: str | None = None,
     ) -> str:
         """
         Mantiene conversación con el paciente como especialista.

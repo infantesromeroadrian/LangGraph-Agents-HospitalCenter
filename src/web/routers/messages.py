@@ -3,7 +3,7 @@ Endpoints para gestión de mensajes de conversación.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -19,7 +19,7 @@ router = APIRouter()
 @router.get("/sessions/{session_id}/messages")
 async def get_messages(
     session_id: UUID,
-    limit: Optional[int] = Query(default=50, ge=1, le=500),
+    limit: int | None = Query(default=50, ge=1, le=500),
     _: Any = Depends(enforce_read_rate_limit),
     session_auth: dict = Depends(require_session_token),
 ):

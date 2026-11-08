@@ -1,7 +1,6 @@
 """Agente de triaje médico inicial."""
 
 import logging
-from typing import Optional
 from uuid import UUID
 
 from src.agents.base_agent import BaseMedicalAgent
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 class TriageAgent(BaseMedicalAgent):
     """Agente especializado en triaje médico inicial."""
 
-    def __init__(self, llm_service: Optional[LLMService] = None):
+    def __init__(self, llm_service: LLMService | None = None):
         """
         Inicializa el agente de triaje.
 
@@ -58,9 +57,9 @@ IMPORTANTE:
     async def evaluate(
         self,
         message,
-        triage_analysis: Optional[dict] = None,
-        session_id: Optional[UUID] = None,
-        patient_context: Optional[str] = None,
+        triage_analysis: dict | None = None,
+        session_id: UUID | None = None,
+        patient_context: str | None = None,
     ) -> dict:
         """
         Analiza la consulta inicial del paciente.

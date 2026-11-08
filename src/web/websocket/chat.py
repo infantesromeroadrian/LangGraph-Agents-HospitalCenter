@@ -408,7 +408,7 @@ async def process_user_message(
                 existing_state.get("active_specialist"),
             )
             state = cast(
-                MedicalGraphState,
+                "MedicalGraphState",
                 {
                     "messages": [user_message],
                     "patient_info": patient_info,

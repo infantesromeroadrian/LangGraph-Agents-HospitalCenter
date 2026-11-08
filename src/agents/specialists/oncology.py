@@ -1,7 +1,6 @@
 """Agente especialista en Oncología."""
 
 import logging
-from typing import Optional
 
 from src.agents.base_agent import BaseMedicalAgent
 from src.services.llm_service import LLMService
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 class OncologyAgent(BaseMedicalAgent):
     """Agente especializado en Oncología."""
 
-    def __init__(self, llm_service: Optional[LLMService] = None):
+    def __init__(self, llm_service: LLMService | None = None):
         """
         Inicializa el agente de oncología.
 

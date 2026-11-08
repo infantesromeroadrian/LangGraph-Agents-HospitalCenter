@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 
@@ -14,7 +13,7 @@ class SpecialistEvaluation:
     relevance_score: float  # 0-100
     reasoning: str
     evaluation_id: UUID = field(default_factory=uuid4)
-    session_id: Optional[UUID] = None
+    session_id: UUID | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     evaluation_data: dict = field(default_factory=dict)
     confidence: float = 0.0
