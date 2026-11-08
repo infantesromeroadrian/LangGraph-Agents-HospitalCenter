@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Optional
 from uuid import UUID, uuid4
 
 
@@ -16,7 +15,7 @@ class Session:
     patient_info: dict = field(default_factory=dict)
     metadata: dict = field(default_factory=dict)
     is_active: bool = True
-    selected_specialist: Optional[str] = None
+    selected_specialist: str | None = None
     triage_completed: bool = False
     consensus_data: dict = field(default_factory=dict)
 

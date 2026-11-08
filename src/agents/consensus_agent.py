@@ -1,7 +1,6 @@
 """Agente de consenso para seleccionar el mejor especialista."""
 
 import logging
-from typing import Optional
 
 from src.config.prompts import CONSENSUS_PROMPT
 from src.models.evaluation import SpecialistEvaluation
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 class ConsensusAgent:
     """Agente que decide qué especialista debe atender al paciente."""
 
-    def __init__(self, llm_service: Optional[LLMService] = None):
+    def __init__(self, llm_service: LLMService | None = None):
         """
         Inicializa el agente de consenso.
 

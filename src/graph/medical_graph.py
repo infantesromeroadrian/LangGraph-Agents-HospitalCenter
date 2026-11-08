@@ -130,9 +130,9 @@ async def create_medical_graph(checkpointer: AsyncPostgresSaver) -> Any:
         raise
 
 
-async def create_postgres_checkpointer() -> (
-    tuple[AsyncPostgresSaver, AbstractAsyncContextManager[AsyncPostgresSaver]]
-):
+async def create_postgres_checkpointer() -> tuple[
+    AsyncPostgresSaver, AbstractAsyncContextManager[AsyncPostgresSaver]
+]:
     """
     Crea el checkpointer PostgreSQL para persistencia durable.
 

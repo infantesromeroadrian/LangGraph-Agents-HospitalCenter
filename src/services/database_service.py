@@ -4,7 +4,6 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from typing import Optional
 from uuid import UUID
 
 import asyncpg
@@ -23,7 +22,7 @@ class DatabaseService:
 
     def __init__(self):
         """Inicializa el servicio de base de datos."""
-        self.pool: Optional[Pool] = None
+        self.pool: Pool | None = None
         self.database_url = settings.DATABASE_URL
         self._worker_pid = None  # Track worker process ID
 
@@ -137,7 +136,7 @@ class DatabaseService:
             logger.info(f"ℹ️ Sesión {session.session_id} creada")
             return session
 
-    async def get_session(self, session_id: UUID) -> Optional[Session]:
+    async def get_session(self, session_id: UUID) -> Session | None:
         """Obtiene una sesión por ID."""
         async with self.get_connection() as conn:
             row = await conn.fetchrow("SELECT * FROM sessions WHERE session_id = $1", session_id)
@@ -193,7 +192,7 @@ class DatabaseService:
             return message
 
     async def get_session_messages(
-        self, session_id: UUID, limit: Optional[int] = None
+        self, session_id: UUID, limit: int | None = None
     ) -> list[Message]:
         """Obtiene mensajes de una sesión."""
         async with self.get_connection() as conn:
@@ -313,7 +312,7 @@ class DatabaseService:
         await self.add_message(message)
         return True
 
-    async def get_messages(self, session_id: UUID, limit: Optional[int] = None):
+    async def get_messages(self, session_id: UUID, limit: int | None = None):
         """Alias para get_session_messages para compatibilidad."""
         return await self.get_session_messages(session_id, limit)
 

@@ -642,7 +642,7 @@ class TestMedicalGraphManagerClose:
 
     @pytest.mark.asyncio
     async def test_close_resets_graph_to_none(self):
-        mgr, fake_graph, _, _ = _make_fake_manager_with_graph()
+        mgr, _fake_graph, _, _ = _make_fake_manager_with_graph()
         assert mgr.graph is not None
 
         await mgr.close()

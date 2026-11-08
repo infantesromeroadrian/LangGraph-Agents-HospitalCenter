@@ -3,7 +3,6 @@ Modelos Pydantic para gestión de pacientes.
 """
 
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -20,9 +19,9 @@ class PatientCreate(BaseModel):
     )
     age: int = Field(..., ge=0, le=120, description="Edad del paciente")
     gender: str = Field(..., pattern="^(M|F|O|N)$", description="Género: M/F/O/N")
-    dni: Optional[str] = Field(None, max_length=50, description="DNI/Documento de identidad")
-    email: Optional[EmailStr] = Field(None, description="Email del paciente")
-    phone: Optional[str] = Field(None, max_length=50, description="Teléfono de contacto")
+    dni: str | None = Field(None, max_length=50, description="DNI/Documento de identidad")
+    email: EmailStr | None = Field(None, description="Email del paciente")
+    phone: str | None = Field(None, max_length=50, description="Teléfono de contacto")
 
     # Información médica
     allergies: str = Field(default="Ninguna conocida", description="Alergias conocidas")
@@ -50,19 +49,19 @@ class PatientCreate(BaseModel):
 class PatientUpdate(BaseModel):
     """Modelo para actualizar datos de un paciente."""
 
-    full_name: Optional[str] = Field(None, min_length=3, max_length=255)
-    age: Optional[int] = Field(None, ge=0, le=120)
-    gender: Optional[str] = Field(None, pattern="^(M|F|O|N)$")
-    dni: Optional[str] = Field(None, max_length=50)
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = Field(None, max_length=50)
-    allergies: Optional[str] = None
-    medications: Optional[str] = None
-    medical_history: Optional[str] = None
+    full_name: str | None = Field(None, min_length=3, max_length=255)
+    age: int | None = Field(None, ge=0, le=120)
+    gender: str | None = Field(None, pattern="^(M|F|O|N)$")
+    dni: str | None = Field(None, max_length=50)
+    email: EmailStr | None = None
+    phone: str | None = Field(None, max_length=50)
+    allergies: str | None = None
+    medications: str | None = None
+    medical_history: str | None = None
 
     @field_validator("full_name")
     @classmethod
-    def validate_optional_full_name(cls, v: Optional[str]) -> Optional[str]:
+    def validate_optional_full_name(cls, v: str | None) -> str | None:
         """Limpia el nombre si se proporciona en una actualizacion."""
         if v is None:
             return v
@@ -73,7 +72,7 @@ class PatientUpdate(BaseModel):
 
     @field_validator("allergies", "medications", "medical_history")
     @classmethod
-    def validate_optional_medical_fields(cls, v: Optional[str]) -> Optional[str]:
+    def validate_optional_medical_fields(cls, v: str | None) -> str | None:
         """Limpia campos medicos opcionales."""
         if v is None:
             return v
@@ -87,9 +86,9 @@ class PatientResponse(BaseModel):
     full_name: str
     age: int
     gender: str
-    dni: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
+    dni: str | None = None
+    email: str | None = None
+    phone: str | None = None
     allergies: str
     medications: str
     medical_history: str
